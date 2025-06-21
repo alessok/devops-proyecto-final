@@ -1,0 +1,69 @@
+{
+  "name": "devops-proyecto-final",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión de Inventario - Proyecto Final DevOps",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd src/backend && npm run dev",
+    "dev:frontend": "cd src/frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd src/backend && npm run build",
+    "build:frontend": "cd src/frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd src/backend && npm test",
+    "test:frontend": "cd src/frontend && npm test",
+    "test:coverage": "npm run test:backend -- --coverage",
+    "test:integration": "cd tests/integration && npm test",
+    "test:functional": "cd tests/functional && npm test",
+    "test:performance": "cd tests/performance && ./run-jmeter-tests.sh",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd src/backend && npm run lint",
+    "lint:frontend": "cd src/frontend && npm run lint",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "deploy:staging": "./scripts/deploy/staging.sh",
+    "deploy:production": "./scripts/deploy/production.sh",
+    "db:migrate": "cd database && flyway migrate",
+    "db:clean": "cd database && flyway clean",
+    "sonar": "sonar-scanner",
+    "postman:tests": "cd tests/api && newman run collection.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usuario/devops-proyecto-final.git"
+  },
+  "keywords": [
+    "devops",
+    "ci-cd",
+    "docker",
+    "kubernetes",
+    "nodejs",
+    "react",
+    "postgresql",
+    "selenium",
+    "jmeter",
+    "sonarqube"
+  ],
+  "author": "Equipo DevOps",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm test"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ]
+  }
+}

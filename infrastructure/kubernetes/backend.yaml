@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: inventory-system
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: inventory-backend:latest
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3002"
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "inventory_db"
+        - name: DB_USER
+          value: "inventory_user"
+        - name: DB_PASS
+          value: "inventory_pass"
+        - name: JWT_SECRET
+          value: "your-super-secret-jwt-key-change-in-production-please-use-a-strong-random-key"
+        - name: JWT_EXPIRES_IN
+          value: "24h"
+        - name: API_VERSION
+          value: "v1"
+        - name: API_BASE_URL
+          value: "/api/v1"
+        ports:
+        - containerPort: 3002
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: inventory-system
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 3002
+    targetPort: 3002
+  type: LoadBalancer

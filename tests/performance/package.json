@@ -1,0 +1,17 @@
+{
+  "name": "inventory-performance-tests",
+  "version": "1.0.0",
+  "description": "Pruebas de rendimiento para el sistema de inventario",
+  "scripts": {
+    "test": "artillery run load-test.yml",
+    "test:quick": "artillery quick --count 10 --num 10 http://localhost:3002/health",
+    "test:stress": "artillery run stress-test.yml",
+    "test:spike": "artillery run spike-test.yml",
+    "report": "artillery report"
+  },
+  "dependencies": {
+    "artillery": "^2.0.0",
+    "lighthouse": "^10.4.0",
+    "clinic": "^12.1.0"
+  }
+}

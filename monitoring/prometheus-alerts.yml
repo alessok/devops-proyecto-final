@@ -1,0 +1,76 @@
+groups:
+  - name: inventory-system.rules
+    rules:
+      # Reglas de alerta para disponibilidad
+      - alert: InventoryBackendDown
+        expr: up{job="inventory-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: inventory-backend
+        annotations:
+          summary: "El backend del sistema de inventario está caído"
+          description: "El servicio backend del sistema de inventario ha estado inactivo por más de 1 minuto"
+
+      # Reglas de alerta para performance
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: inventory-backend
+        annotations:
+          summary: "Tiempo de respuesta alto en el backend"
+          description: "El percentil 95 del tiempo de respuesta es {{ $value }}s, superior al umbral de 1s"
+
+      - alert: HighErrorRate
+        expr: (sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: inventory-backend
+        annotations:
+          summary: "Alta tasa de errores en el backend"
+          description: "La tasa de errores HTTP 5xx es {{ $value }}%, superior al umbral del 5%"
+
+      # Reglas de alerta para recursos
+      - alert: HighMemoryUsage
+        expr: (nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: inventory-backend
+        annotations:
+          summary: "Uso alto de memoria en Node.js"
+          description: "El uso de memoria heap está en {{ $value }}%, superior al umbral del 80%"
+
+      - alert: EventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: inventory-backend
+        annotations:
+          summary: "Event Loop Lag alto"
+          description: "El Event Loop Lag es {{ $value }}s, superior al umbral de 0.1s"
+
+      # Reglas de alerta para tráfico
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[1m]) > 100
+        for: 3m
+        labels:
+          severity: warning
+          service: inventory-backend
+        annotations:
+          summary: "Tasa de requests muy alta"
+          description: "La tasa de requests es {{ $value }} req/s, superior al umbral de 100 req/s"
+
+      - alert: NoTraffic
+        expr: rate(http_requests_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: inventory-backend
+        annotations:
+          summary: "No hay tráfico en el backend"
+          description: "No se han recibido requests HTTP en los últimos 5 minutos"

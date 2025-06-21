@@ -1,0 +1,114 @@
+config:
+  target: 'http://localhost:3002'
+  phases:
+    # Fase de calentamiento
+    - duration: 60
+      arrivalRate: 5
+      name: "Calentamiento"
+    
+    # Carga normal
+    - duration: 300
+      arrivalRate: 20
+      name: "Carga normal"
+    
+    # Pico de carga
+    - duration: 120
+      arrivalRate: 50
+      name: "Pico de carga"
+    
+    # Enfriamiento
+    - duration: 60
+      arrivalRate: 5
+      name: "Enfriamiento"
+
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+      Accept: 'application/json'
+
+scenarios:
+  - name: "Health Check"
+    weight: 20
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+
+  - name: "API Metrics"
+    weight: 15
+    flow:
+      - get:
+          url: "/metrics"
+          expect:
+            - statusCode: 200
+
+  - name: "Login y Navegación"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "admin@example.com"
+            password: "admin123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - get:
+          url: "/api/v1/products"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: [200, 401]
+
+  - name: "Crear Producto"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "admin@example.com"
+            password: "admin123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - post:
+          url: "/api/v1/products"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Producto Test {{ $randomString() }}"
+            description: "Descripción de prueba de rendimiento"
+            price: "{{ $randomNumber(10, 1000) }}"
+            stock: "{{ $randomNumber(1, 100) }}"
+            categoryId: 1
+          expect:
+            - statusCode: [201, 401]
+
+  - name: "Buscar Productos"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/v1/products?search=test&page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+# Configuración de métricas
+plugins:
+  expect: {}
+  metrics-by-endpoint: {}
+
+# Umbrales de rendimiento
+ensure:
+  thresholds:
+    - http.response_time:
+        p95: 1000  # 95% de requests < 1 segundo
+        p99: 2000  # 99% de requests < 2 segundos
+    - http.response_time.health:
+        p95: 100   # Health check < 100ms
+    - http.codes.200:
+        min: 90    # Al menos 90% de respuestas exitosas
+    - http.codes.500:
+        max: 1     # Máximo 1% de errores de servidor
