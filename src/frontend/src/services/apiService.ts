@@ -212,6 +212,31 @@ class ApiService {
     const response: AxiosResponse<ApiResponse<Product[]>> = await this.api.get('/products/low-stock');
     return response.data;
   }
+
+  // Public endpoints (no authentication required)
+  async getPublicProducts(): Promise<ApiResponse<Product[]>> {
+    // Create a separate axios instance for public endpoints without auth interceptor
+    const publicApi = axios.create({
+      baseURL: this.baseURL,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+    
+    const response: AxiosResponse<ApiResponse<Product[]>> = await publicApi.get('/public/products');
+    return response.data;
+  }
+
+  async getPublicCategories(): Promise<ApiResponse<Category[]>> {
+    // Create a separate axios instance for public endpoints without auth interceptor
+    const publicApi = axios.create({
+      baseURL: this.baseURL,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+    
+    const response: AxiosResponse<ApiResponse<Category[]>> = await publicApi.get('/public/categories');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

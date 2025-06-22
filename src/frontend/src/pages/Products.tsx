@@ -31,20 +31,29 @@ const Products: React.FC = () => {
     try {
       setLoading(true);
       const [productsResponse, categoriesResponse] = await Promise.all([
-        apiService.getProducts(),
-        apiService.getCategories()
+        apiService.getPublicProducts(),
+        apiService.getPublicCategories()
       ]);
 
       if (productsResponse.success && productsResponse.data) {
-        setProducts(productsResponse.data);
+        // Asegurar que data es un array
+        setProducts(Array.isArray(productsResponse.data) ? productsResponse.data : []);
+      } else {
+        // Si no hay datos exitosos, mantener un array vacío
+        setProducts([]);
       }
 
       if (categoriesResponse.success && categoriesResponse.data) {
-        setCategories(categoriesResponse.data);
+        setCategories(Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []);
+      } else {
+        setCategories([]);
       }
     } catch (error) {
       toast.error('Error al cargar productos');
       console.error('Error fetching products:', error);
+      // En caso de error, asegurar que los estados sigan siendo arrays
+      setProducts([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -54,7 +63,7 @@ const Products: React.FC = () => {
     try {
       const response = await apiService.createProduct(data);
       if (response.success && response.data) {
-        setProducts([...products, response.data]);
+        setProducts([...(Array.isArray(products) ? products : []), response.data]);
         setIsModalOpen(false);
         navigate('/products');
         toast.success('Producto creado exitosamente');
@@ -69,7 +78,7 @@ const Products: React.FC = () => {
     try {
       const response = await apiService.updateProduct(id, data);
       if (response.success && response.data) {
-        setProducts(products.map(p => p.id === id ? response.data! : p));
+        setProducts((Array.isArray(products) ? products : []).map(p => p.id === id ? response.data! : p));
         setIsModalOpen(false);
         setEditingProduct(null);
         navigate('/products');
@@ -89,7 +98,7 @@ const Products: React.FC = () => {
     try {
       const response = await apiService.deleteProduct(id);
       if (response.success) {
-        setProducts(products.filter(p => p.id !== id));
+        setProducts((Array.isArray(products) ? products : []).filter(p => p.id !== id));
         toast.success('Producto eliminado exitosamente');
       }
     } catch (error: any) {
@@ -114,7 +123,7 @@ const Products: React.FC = () => {
     navigate('/products');
   };
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === '' || product.categoryId === selectedCategory;
@@ -251,8 +260,11 @@ const Products: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredProducts.map((product) => {
-                    const stockStatus = getStockStatus(product.stockQuantity);
+                    const stockQuantity = product.stockQuantity ?? product.stock ?? 0;
+                    const stockStatus = getStockStatus(stockQuantity);
                     const StockIcon = stockStatus.icon;
+                    const categoryId = product.categoryId ?? 0;
+                    const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price) || '0');
                     
                     return (
                       <tr key={product.id}>
@@ -266,9 +278,9 @@ const Products: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td>{getCategoryName(product.categoryId)}</td>
+                        <td>{getCategoryName(categoryId)}</td>
                         <td>
-                          ${product.price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                          ${price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </td>
                         <td>
                           <div style={{ 
@@ -278,7 +290,7 @@ const Products: React.FC = () => {
                           }}>
                             <StockIcon size={16} style={{ color: stockStatus.color }} />
                             <span style={{ fontWeight: '500' }}>
-                              {product.stockQuantity}
+                              {stockQuantity}
                             </span>
                           </div>
                         </td>
@@ -293,7 +305,7 @@ const Products: React.FC = () => {
                         </td>
                         <td>
                           <span style={{ fontWeight: '500' }}>
-                            ${(product.price * product.stockQuantity).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                            ${(price * stockQuantity).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                           </span>
                         </td>
                         <td>

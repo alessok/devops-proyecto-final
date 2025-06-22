@@ -69,13 +69,14 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
-  stockQuantity: number;
-  categoryId: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  category?: Category;
+  price: number | string;
+  stockQuantity?: number;
+  stock?: number; // For API compatibility
+  categoryId?: number;
+  category?: string | Category; // Can be string or Category object
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateProductRequest {

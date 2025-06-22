@@ -14,26 +14,47 @@ const Dashboard: React.FC = () => {
       try {
         setLoading(true);
         
-        // Fetch dashboard stats and low stock products in parallel
-        const [productsResponse] = await Promise.all([
-          apiService.getProducts(),
-          fetchLowStockProducts()
-        ]);
-
-        if (productsResponse.success && productsResponse.data) {
-          // Calculate stats from products data if API doesn't provide dashboard stats
-          if (!stats) {
-            const products = productsResponse.data;
-            const calculatedStats: DashboardStats = {
-              totalProducts: products.length,
-              totalCategories: new Set(products.map(p => p.categoryId)).size,
-              totalUsers: 0, // We'll need to fetch users for this
-              lowStockProducts: products.filter(p => p.stockQuantity < 10).length,
-              totalValue: products.reduce((sum, p) => sum + (p.price * p.stockQuantity), 0)
-            };
-            setStats(calculatedStats);
+        // Try to fetch dashboard stats first
+        try {
+          const dashboardResponse = await fetch('http://localhost:3002/api/v1/dashboard/stats');
+          if (dashboardResponse.ok) {
+            const dashboardData = await dashboardResponse.json();
+            if (dashboardData.success && dashboardData.data) {
+              setStats(dashboardData.data);
+              await fetchLowStockProducts();
+              return;
+            }
           }
+        } catch (error) {
+          console.log('Dashboard stats not available, calculating from products...');
         }
+
+        // Fallback: calculate stats from products
+        const productsResponse = await apiService.getPublicProducts();
+        if (productsResponse.success && productsResponse.data) {
+          const products = Array.isArray(productsResponse.data) ? productsResponse.data : [];
+          const calculatedStats: DashboardStats = {
+            totalProducts: products.length,
+            totalCategories: new Set(products.map(p => {
+              if (typeof p.category === 'string') return p.category;
+              if (typeof p.category === 'object' && p.category?.name) return p.category.name;
+              return p.categoryId || 'Unknown';
+            })).size,
+            totalUsers: 3, // Default value
+            lowStockProducts: products.filter(p => {
+              const stock = p.stockQuantity || p.stock || 0;
+              return Number(stock) < 10;
+            }).length,
+            totalValue: products.reduce((sum, p) => {
+              const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price) || '0');
+              const stock = Number(p.stockQuantity || p.stock || 0);
+              return sum + (price * stock);
+            }, 0)
+          };
+          setStats(calculatedStats);
+        }
+        
+        await fetchLowStockProducts();
 
       } catch (error: any) {
         toast.error('Error al cargar datos del dashboard');
@@ -44,7 +65,7 @@ const Dashboard: React.FC = () => {
     };
 
     fetchDashboardData();
-  }, [stats]);
+  }, []); // Remove stats dependency to avoid infinite loop
 
   const fetchLowStockProducts = async (): Promise<void> => {
     try {
@@ -53,9 +74,12 @@ const Dashboard: React.FC = () => {
         setLowStockProducts(response.data);
       } else {
         // Fallback: get all products and filter for low stock
-        const allProductsResponse = await apiService.getProducts();
+        const allProductsResponse = await apiService.getPublicProducts();
         if (allProductsResponse.success && allProductsResponse.data) {
-          const lowStock = allProductsResponse.data.filter(product => product.stockQuantity < 10);
+          const lowStock = allProductsResponse.data.filter(product => {
+            const quantity = product.stockQuantity ?? product.stock ?? 0;
+            return quantity < 10;
+          });
           setLowStockProducts(lowStock);
         }
       }
@@ -147,18 +171,25 @@ const Dashboard: React.FC = () => {
                         {product.name}
                       </div>
                       <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                        Categoría: {product.category?.name || 'Sin categoría'}
+                        Categoría: {
+                          typeof product.category === 'string' 
+                            ? product.category 
+                            : product.category?.name || 'Sin categoría'
+                        }
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ 
                         fontWeight: 'bold', 
-                        color: product.stockQuantity === 0 ? '#dc3545' : '#fd7e14' 
+                        color: (product.stockQuantity || product.stock || 0) === 0 ? '#dc3545' : '#fd7e14' 
                       }}>
-                        {product.stockQuantity} unidades
+                        {product.stockQuantity || product.stock || 0} unidades
                       </div>
                       <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                        ${product.price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                        ${typeof product.price === 'number' 
+                          ? product.price.toLocaleString('es-ES', { minimumFractionDigits: 2 })
+                          : parseFloat(String(product.price) || '0').toLocaleString('es-ES', { minimumFractionDigits: 2 })
+                        }
                       </div>
                     </div>
                   </div>
