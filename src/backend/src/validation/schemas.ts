@@ -24,25 +24,21 @@ export const loginSchema = Joi.object({
   password: Joi.string().required()
 });
 
-// Product validation schemas
+// Product validation schemas (matching real database structure)
 export const createProductSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required(),
-  description: Joi.string().max(500).required(),
-  sku: Joi.string().alphanum().min(3).max(50).required(),
+  name: Joi.string().min(2).max(200).required(),
+  description: Joi.string().max(1000).allow(''),
   categoryId: Joi.number().integer().positive().required(),
   price: Joi.number().positive().precision(2).required(),
-  stockQuantity: Joi.number().integer().min(0).required(),
-  minStockLevel: Joi.number().integer().min(0).required()
+  stockQuantity: Joi.number().integer().min(0).required()
 });
 
 export const updateProductSchema = Joi.object({
-  name: Joi.string().min(2).max(100),
-  description: Joi.string().max(500),
-  sku: Joi.string().alphanum().min(3).max(50),
+  name: Joi.string().min(2).max(200),
+  description: Joi.string().max(1000).allow(''),
   categoryId: Joi.number().integer().positive(),
   price: Joi.number().positive().precision(2),
   stockQuantity: Joi.number().integer().min(0),
-  minStockLevel: Joi.number().integer().min(0),
   isActive: Joi.boolean()
 });
 

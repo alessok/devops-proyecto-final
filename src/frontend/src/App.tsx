@@ -61,7 +61,43 @@ const AppContent: React.FC = () => {
         />
         
         <Route
+          path="/products/new"
+          element={
+            <ProtectedRoute>
+              <Products />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/products/:id"
+          element={
+            <ProtectedRoute>
+              <Products />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
           path="/categories"
+          element={
+            <ProtectedRoute>
+              <Categories />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/categories/new"
+          element={
+            <ProtectedRoute>
+              <Categories />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/categories/:id"
           element={
             <ProtectedRoute>
               <Categories />

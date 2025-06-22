@@ -29,8 +29,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
       description: '',
       price: 0,
       stockQuantity: 0,
-      categoryId: '',
-      isActive: true
+      categoryId: ''
     }
   });
 

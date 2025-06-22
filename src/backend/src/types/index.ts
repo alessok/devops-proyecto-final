@@ -39,11 +39,9 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  sku: string;
   categoryId: number;
   price: number;
   stockQuantity: number;
-  minStockLevel: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -52,21 +50,17 @@ export interface Product {
 export interface ProductCreate {
   name: string;
   description: string;
-  sku: string;
   categoryId: number;
   price: number;
   stockQuantity: number;
-  minStockLevel: number;
 }
 
 export interface ProductUpdate {
   name?: string;
   description?: string;
-  sku?: string;
   categoryId?: number;
   price?: number;
   stockQuantity?: number;
-  minStockLevel?: number;
   isActive?: boolean;
 }
 

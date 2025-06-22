@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, Package, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Product, Category, CreateProductRequest, UpdateProductRequest } from '../types';
@@ -7,6 +8,8 @@ import Modal from '../components/Modal';
 import ProductForm from '../components/ProductForm';
 
 const Products: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +20,12 @@ const Products: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Check if we're on the "new" route and open modal
+    if (location.pathname === '/products/new') {
+      setIsModalOpen(true);
+    }
+  }, [location.pathname]);
 
   const fetchData = async () => {
     try {
@@ -48,6 +56,7 @@ const Products: React.FC = () => {
       if (response.success && response.data) {
         setProducts([...products, response.data]);
         setIsModalOpen(false);
+        navigate('/products');
         toast.success('Producto creado exitosamente');
       }
     } catch (error: any) {
@@ -63,6 +72,7 @@ const Products: React.FC = () => {
         setProducts(products.map(p => p.id === id ? response.data! : p));
         setIsModalOpen(false);
         setEditingProduct(null);
+        navigate('/products');
         toast.success('Producto actualizado exitosamente');
       }
     } catch (error: any) {
@@ -90,7 +100,7 @@ const Products: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setIsModalOpen(true);
+    navigate('/products/new');
   };
 
   const openEditModal = (product: Product) => {
@@ -101,6 +111,7 @@ const Products: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
+    navigate('/products');
   };
 
   const filteredProducts = products.filter(product => {

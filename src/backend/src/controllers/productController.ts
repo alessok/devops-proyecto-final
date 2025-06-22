@@ -72,12 +72,7 @@ export class ProductController {
     try {
       const productData = req.body;
 
-      // Check if SKU already exists
-      const existingProduct = await productService.findBySku(productData.sku);
-      if (existingProduct) {
-        throw new AppError('Product with this SKU already exists', 409);
-      }
-
+      // Note: SKU validation removed as it's not part of the current database schema
       const newProduct = await productService.create(productData);
 
       const response: ApiResponse = {
@@ -108,14 +103,7 @@ export class ProductController {
         throw new AppError('Product not found', 404);
       }
 
-      // Check if new SKU already exists (if SKU is being updated)
-      if (productData.sku && productData.sku !== existingProduct.sku) {
-        const skuExists = await productService.findBySku(productData.sku);
-        if (skuExists) {
-          throw new AppError('Product with this SKU already exists', 409);
-        }
-      }
-
+      // Note: SKU validation removed as it's not part of the current database schema
       const updatedProduct = await productService.update(parseInt(id), productData);
 
       const response: ApiResponse = {

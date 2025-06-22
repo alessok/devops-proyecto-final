@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Category, CreateCategoryRequest, UpdateCategoryRequest } from '../types';
@@ -7,6 +8,8 @@ import Modal from '../components/Modal';
 import CategoryForm from '../components/CategoryForm';
 
 const Categories: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,7 +18,12 @@ const Categories: React.FC = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    
+    // Check if we're on the "new" route and open modal
+    if (location.pathname === '/categories/new') {
+      setIsModalOpen(true);
+    }
+  }, [location.pathname]);
 
   const fetchCategories = async () => {
     try {
@@ -38,6 +46,7 @@ const Categories: React.FC = () => {
       if (response.success && response.data) {
         setCategories([...categories, response.data]);
         setIsModalOpen(false);
+        navigate('/categories');
         toast.success('Categoría creada exitosamente');
       }
     } catch (error: any) {
@@ -53,6 +62,7 @@ const Categories: React.FC = () => {
         setCategories(categories.map(c => c.id === id ? response.data! : c));
         setIsModalOpen(false);
         setEditingCategory(null);
+        navigate('/categories');
         toast.success('Categoría actualizada exitosamente');
       }
     } catch (error: any) {
@@ -80,7 +90,7 @@ const Categories: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingCategory(null);
-    setIsModalOpen(true);
+    navigate('/categories/new');
   };
 
   const openEditModal = (category: Category) => {
@@ -91,6 +101,7 @@ const Categories: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
+    navigate('/categories');
   };
 
   const filteredCategories = categories.filter(category =>

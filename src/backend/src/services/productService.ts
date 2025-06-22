@@ -14,15 +14,6 @@ export class ProductService {
     return result.rows[0] || null;
   }
 
-  async findBySku(sku: string): Promise<Product | null> {
-    const query = `
-      SELECT * FROM products WHERE sku = $1 AND is_active = true
-    `;
-    
-    const result = await pool.query(query, [sku]);
-    return result.rows[0] || null;
-  }
-
   async findAll(
     page: number = 1, 
     limit: number = 10, 
@@ -35,7 +26,7 @@ export class ProductService {
     let paramCount = 1;
 
     if (search) {
-      whereClause += ` AND (p.name ILIKE $${paramCount} OR p.description ILIKE $${paramCount} OR p.sku ILIKE $${paramCount})`;
+      whereClause += ` AND (p.name ILIKE $${paramCount} OR p.description ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
@@ -69,8 +60,8 @@ export class ProductService {
       SELECT p.*, c.name as category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.stock_quantity <= p.min_stock_level AND p.is_active = true
-      ORDER BY (p.stock_quantity - p.min_stock_level) ASC
+      WHERE p.stock_quantity <= 10 AND p.is_active = true
+      ORDER BY p.stock_quantity ASC
     `;
     
     const result = await pool.query(query);
@@ -79,19 +70,17 @@ export class ProductService {
 
   async create(productData: ProductCreate): Promise<Product> {
     const query = `
-      INSERT INTO products (name, description, sku, category_id, price, stock_quantity, min_stock_level)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO products (name, description, category_id, price, stock_quantity)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
     
     const values = [
       productData.name,
       productData.description,
-      productData.sku,
       productData.categoryId,
       productData.price,
-      productData.stockQuantity,
-      productData.minStockLevel
+      productData.stockQuantity
     ];
     
     const result = await pool.query(query, values);
@@ -115,12 +104,6 @@ export class ProductService {
       paramCount++;
     }
     
-    if (productData.sku) {
-      fields.push(`sku = $${paramCount}`);
-      values.push(productData.sku);
-      paramCount++;
-    }
-    
     if (productData.categoryId) {
       fields.push(`category_id = $${paramCount}`);
       values.push(productData.categoryId);
@@ -136,12 +119,6 @@ export class ProductService {
     if (productData.stockQuantity !== undefined) {
       fields.push(`stock_quantity = $${paramCount}`);
       values.push(productData.stockQuantity);
-      paramCount++;
-    }
-    
-    if (productData.minStockLevel !== undefined) {
-      fields.push(`min_stock_level = $${paramCount}`);
-      values.push(productData.minStockLevel);
       paramCount++;
     }
     

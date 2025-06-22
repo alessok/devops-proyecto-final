@@ -21,8 +21,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
       isActive: category.isActive
     } : {
       name: '',
-      description: '',
-      isActive: true
+      description: ''
     }
   });
 
