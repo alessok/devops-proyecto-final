@@ -42,6 +42,25 @@ app.use(express.urlencoded({ extended: true }));
 // Metrics middleware
 app.use(metricsMiddleware);
 
+// Welcome/Root endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    service: 'Inventory Management API',
+    version: '1.0.0',
+    status: 'Running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      metrics: '/metrics',
+      api: '/api/v1',
+      public_products: '/api/v1/public/products',
+      public_categories: '/api/v1/public/categories',
+      dashboard_stats: '/api/v1/dashboard/stats'
+    },
+    message: '🚀 Inventory Management API is running successfully!'
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
