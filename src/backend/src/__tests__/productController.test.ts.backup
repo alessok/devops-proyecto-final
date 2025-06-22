@@ -1,0 +1,430 @@
+import { Request, Response, NextFunction } from 'express';
+import { ProductController } from '../controllers/productController';
+import { ProductService } from '../services/productService';
+import { AppError } from '../middleware/errorHandler';
+import { mockProductService } from '../__mocks__/productService';
+
+// Mock the ProductService
+jest.mock('../services/productService');
+
+describe('ProductController', () => {
+  let productController: ProductController;
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
+  let mockJson: jest.Mock;
+  let mockStatus: jest.Mock;
+
+  beforeEach(() => {
+    // Clear all mocks
+    jest.clearAllMocks();
+    
+    productController = new ProductController();
+    
+    mockJson = jest.fn();
+    mockStatus = jest.fn().mockReturnValue({ json: mockJson });
+    
+    mockReq = {
+      query: {},
+      params: {},
+      body: {}
+    };
+    
+    mockRes = {
+      status: mockStatus,
+      json: mockJson
+    };
+    
+    mockNext = jest.fn();
+  });
+
+  describe('getAllProducts', () => {
+    it('should return paginated products successfully', async () => {
+      const mockProducts = [
+        {
+          id: 1,
+          name: 'Test Product',
+          description: 'Test description',
+          price: 29.99,
+          stockQuantity: 100,
+          categoryId: 1,
+          categoryName: 'Electronics',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+
+      mockReq.query = { page: '1', limit: '10' };
+      mockProductService.findAll.mockResolvedValue({
+        products: mockProducts,
+        total: 1
+      });
+
+      await productController.getAllProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findAll).toHaveBeenCalledWith(1, 10, undefined, undefined);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Products retrieved successfully',
+        data: {
+          data: mockProducts,
+          pagination: {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 1,
+            itemsPerPage: 10
+          }
+        },
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should handle search and category filter', async () => {
+      mockReq.query = { 
+        page: '2', 
+        limit: '5', 
+        search: 'laptop', 
+        categoryId: '1' 
+      };
+
+      mockProductService.findAll.mockResolvedValue({
+        products: [],
+        total: 0
+      });
+
+      await productController.getAllProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findAll).toHaveBeenCalledWith(2, 5, 'laptop', 1);
+    });
+
+    it('should use default pagination values', async () => {
+      mockReq.query = {};
+      
+      mockProductService.findAll.mockResolvedValue({
+        products: [],
+        total: 0
+      });
+
+      await productController.getAllProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findAll).toHaveBeenCalledWith(1, 10, undefined, undefined);
+    });
+
+    it('should call next with error when service throws', async () => {
+      const error = new Error('Database error');
+      mockProductService.findAll.mockRejectedValue(error);
+
+      await productController.getAllProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('getProductById', () => {
+    it('should return product when found', async () => {
+      const mockProduct = {
+        id: 1,
+        name: 'Test Product',
+        description: 'Test description',
+        price: 29.99,
+        stockQuantity: 100,
+        categoryId: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockReq.params = { id: '1' };
+      (mockProductService.findById as jest.Mock).mockResolvedValue(mockProduct);
+
+      await productController.getProductById(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findById).toHaveBeenCalledWith(1);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Product retrieved successfully',
+        data: mockProduct,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error when product ID is missing', async () => {
+      mockReq.params = {};
+
+      await productController.getProductById(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+
+    it('should throw error when product not found', async () => {
+      mockReq.params = { id: '999' };
+      (mockProductService.findById as jest.Mock).mockResolvedValue(null);
+
+      await productController.getProductById(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+  });
+
+  describe('createProduct', () => {
+    it('should create product successfully', async () => {
+      const productData = {
+        name: 'New Product',
+        description: 'New description',
+        price: 39.99,
+        stockQuantity: 50,
+        categoryId: 1
+      };
+
+      const mockCreatedProduct = {
+        id: 1,
+        ...productData,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockReq.body = productData;
+      (mockProductService.create as jest.Mock).mockResolvedValue(mockCreatedProduct);
+
+      await productController.createProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.create).toHaveBeenCalledWith(productData);
+      expect(mockStatus).toHaveBeenCalledWith(201);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Product created successfully',
+        data: mockCreatedProduct,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should call next with error when service throws', async () => {
+      const error = new Error('Creation failed');
+      mockReq.body = { name: 'Test' };
+      (mockProductService.create as jest.Mock).mockRejectedValue(error);
+
+      await productController.createProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('updateProduct', () => {
+    it('should update product successfully', async () => {
+      const updateData = { name: 'Updated Product', price: 49.99 };
+      const mockUpdatedProduct = {
+        id: 1,
+        name: 'Updated Product',
+        description: 'Test description',
+        price: 49.99,
+        stockQuantity: 100,
+        categoryId: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockReq.params = { id: '1' };
+      mockReq.body = updateData;
+      (mockProductService.update as jest.Mock).mockResolvedValue(mockUpdatedProduct);
+
+      await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.update).toHaveBeenCalledWith(1, updateData);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Product updated successfully',
+        data: mockUpdatedProduct,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error when product ID is missing', async () => {
+      mockReq.params = {};
+      mockReq.body = { name: 'Test' };
+
+      await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+
+    it('should throw error when product not found', async () => {
+      mockReq.params = { id: '999' };
+      mockReq.body = { name: 'Test' };
+      (mockProductService.update as jest.Mock).mockResolvedValue(null);
+
+      await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+  });
+
+  describe('deleteProduct', () => {
+    it('should delete product successfully', async () => {
+      mockReq.params = { id: '1' };
+      (mockProductService.delete as jest.Mock).mockResolvedValue(true);
+
+      await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.delete).toHaveBeenCalledWith(1);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Product deleted successfully',
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error when product ID is missing', async () => {
+      mockReq.params = {};
+
+      await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+
+    it('should throw error when product not found', async () => {
+      mockReq.params = { id: '999' };
+      (mockProductService.delete as jest.Mock).mockResolvedValue(false);
+
+      await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+  });
+
+  describe('updateStock', () => {
+    it('should update stock successfully', async () => {
+      const stockData = { quantity: 150 };
+      const mockUpdatedProduct = {
+        id: 1,
+        name: 'Test Product',
+        stockQuantity: 150,
+        price: 29.99,
+        categoryId: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockReq.params = { id: '1' };
+      mockReq.body = stockData;
+      (mockProductService.updateStock as jest.Mock).mockResolvedValue(mockUpdatedProduct);
+
+      await productController.updateStock(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.updateStock).toHaveBeenCalledWith(1, 150);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Stock updated successfully',
+        data: mockUpdatedProduct,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error when product ID is missing', async () => {
+      mockReq.params = {};
+      mockReq.body = { quantity: 150 };
+
+      await productController.updateStock(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+
+    it('should throw error when quantity is missing', async () => {
+      mockReq.params = { id: '1' };
+      mockReq.body = {};
+
+      await productController.updateStock(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+
+    it('should throw error when product not found', async () => {
+      mockReq.params = { id: '999' };
+      mockReq.body = { quantity: 150 };
+      (mockProductService.updateStock as jest.Mock).mockResolvedValue(null);
+
+      await productController.updateStock(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    });
+  });
+
+  describe('getLowStockProducts', () => {
+    it('should return low stock products', async () => {
+      const mockLowStockProducts = [
+        {
+          id: 1,
+          name: 'Low Stock Product',
+          stockQuantity: 5,
+          price: 29.99,
+          categoryId: 1,
+          isActive: true
+        }
+      ];
+
+      mockReq.query = { threshold: '10' };
+      (mockProductService.findLowStock as jest.Mock).mockResolvedValue(mockLowStockProducts);
+
+      await productController.getLowStockProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findLowStock).toHaveBeenCalledWith(10);
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Low stock products retrieved successfully',
+        data: mockLowStockProducts,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should use default threshold when not provided', async () => {
+      mockReq.query = {};
+      (mockProductService.findLowStock as jest.Mock).mockResolvedValue([]);
+
+      await productController.getLowStockProducts(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.findLowStock).toHaveBeenCalledWith(10);
+    });
+  });
+
+  describe('getInventoryStats', () => {
+    it('should return inventory statistics', async () => {
+      const mockStats = {
+        totalProducts: 100,
+        totalValue: 5000.00,
+        lowStockCount: 5,
+        categoriesCount: 10
+      };
+
+      (mockProductService.getInventoryStats as jest.Mock).mockResolvedValue(mockStats);
+
+      await productController.getInventoryStats(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockProductService.getInventoryStats).toHaveBeenCalled();
+      expect(mockStatus).toHaveBeenCalledWith(200);
+      expect(mockJson).toHaveBeenCalledWith({
+        success: true,
+        message: 'Inventory statistics retrieved successfully',
+        data: mockStats,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should call next with error when service throws', async () => {
+      const error = new Error('Stats calculation failed');
+      (mockProductService.getInventoryStats as jest.Mock).mockRejectedValue(error);
+
+      await productController.getInventoryStats(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+});

@@ -7,8 +7,7 @@ module.exports = {
     '**/*.(test|spec).+(ts|tsx|js)'
   ],
   testPathIgnorePatterns: [
-    '/node_modules/',
-    'src/__tests__/authController.test.ts'
+    '/node_modules/'
   ],
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest'
@@ -19,8 +18,7 @@ module.exports = {
     '!src/index.ts',
     '!src/**/*.test.{ts,tsx}',
     '!src/**/*.spec.{ts,tsx}',
-    '!src/__tests__/**',
-    '!src/controllers/authController.ts' // Temporarily excluded due to JWT typing issues
+    '!src/__tests__/**'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

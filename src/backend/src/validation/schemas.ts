@@ -60,5 +60,5 @@ export const paginationSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   sortBy: Joi.string().default('id'),
   sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
-  search: Joi.string().allow('')
+  search: Joi.string().allow('').default('')
 });

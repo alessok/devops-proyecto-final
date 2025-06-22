@@ -1,249 +1,328 @@
-import request from 'supertest';
-import app from '../index';
-import { UserService } from '../services/userService';
-import { UserRole } from '../types';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { AuthController } from '../controllers/authController';
+import { UserService } from '../services/userService';
+import { AppError } from '../middleware/errorHandler';
+import { UserRole } from '../types';
 
 // Mock the UserService
 jest.mock('../services/userService');
+jest.mock('jsonwebtoken');
 
-describe('Auth Controller', () => {
+describe('AuthController', () => {
+  let authController: AuthController;
   let mockUserService: jest.Mocked<UserService>;
-
-  beforeAll(() => {
-    mockUserService = new UserService() as jest.Mocked<UserService>;
-  });
+  let mockRequest: Partial<Request>;
+  let mockResponse: Partial<Response>;
+  let mockNext: NextFunction;
 
   beforeEach(() => {
+    authController = new AuthController();
+    mockUserService = UserService.prototype as jest.Mocked<UserService>;
+    
+    mockRequest = {
+      body: {},
+      user: undefined
+    };
+    
+    mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    
+    mockNext = jest.fn();
+    
     jest.clearAllMocks();
+    
+    // Set up default JWT_SECRET for tests
+    process.env.JWT_SECRET = 'test-secret';
+    process.env.JWT_EXPIRES_IN = '24h';
   });
 
-  describe('POST /api/v1/auth/login', () => {
-    it('should login successfully with valid credentials', async () => {
-      const mockUser = {
-        id: 1,
-        email: 'test@example.com',
-        username: 'testuser',
-        password: 'hashedpassword',
-        firstName: 'Test',
-        lastName: 'User',
-        role: UserRole.EMPLOYEE,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+  describe('login', () => {
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      username: 'testuser',
+      password: 'hashedpassword',
+      firstName: 'Test',
+      lastName: 'User',
+      role: UserRole.EMPLOYEE,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
+    it('should login successfully with valid credentials', async () => {
+      mockRequest.body = { email: 'test@example.com', password: 'password123' };
+      mockUserService.findByEmail.mockResolvedValue(mockUser);
+      mockUserService.verifyPassword.mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockReturnValue('mock-token');
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockUserService.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockUserService.verifyPassword).toHaveBeenCalledWith('password123', 'hashedpassword');
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Login successful',
+        data: {
+          token: 'mock-token',
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            username: 'testuser',
+            firstName: 'Test',
+            lastName: 'User',
+            role: UserRole.EMPLOYEE,
+            isActive: true,
+            createdAt: mockUser.createdAt,
+            updatedAt: mockUser.updatedAt
+          },
+          expiresIn: '24h'
+        },
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error for invalid email', async () => {
+      mockRequest.body = { email: 'invalid@example.com', password: 'password123' };
+      mockUserService.findByEmail.mockResolvedValue(null);
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('Invalid credentials');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should throw error for invalid password', async () => {
+      mockRequest.body = { email: 'test@example.com', password: 'wrongpassword' };
+      mockUserService.findByEmail.mockResolvedValue(mockUser);
+      mockUserService.verifyPassword.mockResolvedValue(false);
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('Invalid credentials');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should throw error when JWT_SECRET is not configured', async () => {
+      delete process.env.JWT_SECRET;
+      mockRequest.body = { email: 'test@example.com', password: 'password123' };
       mockUserService.findByEmail.mockResolvedValue(mockUser);
       mockUserService.verifyPassword.mockResolvedValue(true);
 
-      const loginData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send(loginData);
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.token).toBeDefined();
-      expect(response.body.data.user.email).toBe(mockUser.email);
-      expect(response.body.data.user.password).toBeUndefined();
-    });
-
-    it('should return 401 for invalid email', async () => {
-      mockUserService.findByEmail.mockResolvedValue(null);
-
-      const loginData = {
-        email: 'nonexistent@example.com',
-        password: 'password123'
-      };
-
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send(loginData);
-
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Invalid credentials');
-    });
-
-    it('should return 401 for invalid password', async () => {
-      const mockUser = {
-        id: 1,
-        email: 'test@example.com',
-        password: 'hashedpassword',
-        // ... other properties
-      };
-
-      mockUserService.findByEmail.mockResolvedValue(mockUser as any);
-      mockUserService.verifyPassword.mockResolvedValue(false);
-
-      const loginData = {
-        email: 'test@example.com',
-        password: 'wrongpassword'
-      };
-
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send(loginData);
-
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Invalid credentials');
-    });
-
-    it('should return 400 for invalid request data', async () => {
-      const response = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: 'invalid-email' }); // Missing password and invalid email
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Validation error');
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('JWT secret not configured');
+      expect(error.statusCode).toBe(500);
     });
   });
 
-  describe('POST /api/v1/auth/register', () => {
-    it('should register user successfully', async () => {
-      const mockCreatedUser = {
-        id: 1,
-        email: 'new@example.com',
-        username: 'newuser',
-        firstName: 'New',
-        lastName: 'User',
-        role: UserRole.EMPLOYEE,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+  describe('register', () => {
+    const userData = {
+      email: 'new@example.com',
+      username: 'newuser',
+      password: 'password123',
+      firstName: 'New',
+      lastName: 'User',
+      role: UserRole.EMPLOYEE
+    };
 
+    const mockCreatedUser = {
+      id: 1,
+      ...userData,
+      password: 'hashedpassword',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    it('should register user successfully', async () => {
+      mockRequest.body = userData;
       mockUserService.findByEmail.mockResolvedValue(null);
       mockUserService.findByUsername.mockResolvedValue(null);
-      mockUserService.create.mockResolvedValue(mockCreatedUser as any);
+      mockUserService.create.mockResolvedValue(mockCreatedUser);
 
-      const registerData = {
-        email: 'new@example.com',
-        username: 'newuser',
-        password: 'password123',
-        firstName: 'New',
-        lastName: 'User'
-      };
+      await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
-      const response = await request(app)
-        .post('/api/v1/auth/register')
-        .send(registerData);
-
-      expect(response.status).toBe(201);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.email).toBe(registerData.email);
-      expect(response.body.data.username).toBe(registerData.username);
+      expect(mockUserService.findByEmail).toHaveBeenCalledWith(userData.email);
+      expect(mockUserService.findByUsername).toHaveBeenCalledWith(userData.username);
+      expect(mockUserService.create).toHaveBeenCalledWith(userData);
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'User registered successfully',
+        data: {
+          id: mockCreatedUser.id,
+          email: mockCreatedUser.email,
+          username: mockCreatedUser.username
+        },
+        timestamp: expect.any(String)
+      });
     });
 
-    it('should return 409 for existing email', async () => {
-      const existingUser = {
-        id: 1,
-        email: 'existing@example.com',
-        // ... other properties
-      };
+    it('should throw error for duplicate email', async () => {
+      mockRequest.body = userData;
+      mockUserService.findByEmail.mockResolvedValue(mockCreatedUser);
 
-      mockUserService.findByEmail.mockResolvedValue(existingUser as any);
+      await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
-      const registerData = {
-        email: 'existing@example.com',
-        username: 'newuser',
-        password: 'password123',
-        firstName: 'New',
-        lastName: 'User'
-      };
-
-      const response = await request(app)
-        .post('/api/v1/auth/register')
-        .send(registerData);
-
-      expect(response.status).toBe(409);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('User with this email already exists');
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('User with this email already exists');
+      expect(error.statusCode).toBe(409);
     });
 
-    it('should return 409 for existing username', async () => {
-      const existingUser = {
-        id: 1,
-        username: 'existinguser',
-        // ... other properties
-      };
-
+    it('should throw error for duplicate username', async () => {
+      mockRequest.body = userData;
       mockUserService.findByEmail.mockResolvedValue(null);
-      mockUserService.findByUsername.mockResolvedValue(existingUser as any);
+      mockUserService.findByUsername.mockResolvedValue(mockCreatedUser);
 
-      const registerData = {
-        email: 'new@example.com',
-        username: 'existinguser',
-        password: 'password123',
-        firstName: 'New',
-        lastName: 'User'
-      };
+      await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
-      const response = await request(app)
-        .post('/api/v1/auth/register')
-        .send(registerData);
-
-      expect(response.status).toBe(409);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Username already taken');
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('Username already taken');
+      expect(error.statusCode).toBe(409);
     });
   });
 
-  describe('GET /api/v1/auth/profile', () => {
-    it('should return user profile for authenticated user', async () => {
-      const mockUser = {
-        id: 1,
-        email: 'test@example.com',
-        username: 'testuser',
-        firstName: 'Test',
-        lastName: 'User',
+  describe('getProfile', () => {
+    const mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      username: 'testuser',
+      password: 'hashedpassword',
+      firstName: 'Test',
+      lastName: 'User',
+      role: UserRole.EMPLOYEE,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    it('should get user profile successfully', async () => {
+      mockRequest.user = { 
+        id: 1, 
+        email: 'test@example.com', 
+        username: 'testuser', 
+        firstName: 'Test', 
+        lastName: 'User', 
         role: UserRole.EMPLOYEE,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       };
+      mockUserService.findById.mockResolvedValue(mockUser);
 
-      mockUserService.findById.mockResolvedValue(mockUser as any);
+      await authController.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
-      // Create a valid JWT token for testing
-      const token = jwt.sign(
+      expect(mockUserService.findById).toHaveBeenCalledWith(1);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Profile retrieved successfully',
+        data: mockUser,
+        timestamp: expect.any(String)
+      });
+    });
+
+    it('should throw error when user not authenticated', async () => {
+      mockRequest.user = undefined;
+
+      await authController.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('User not authenticated');
+      expect(error.statusCode).toBe(401);
+    });
+
+    it('should throw error when user not found', async () => {
+      mockRequest.user = { 
+        id: 1, 
+        email: 'test@example.com', 
+        username: 'testuser', 
+        firstName: 'Test', 
+        lastName: 'User', 
+        role: UserRole.EMPLOYEE,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockUserService.findById.mockResolvedValue(null);
+
+      await authController.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('User not found');
+      expect(error.statusCode).toBe(404);
+    });
+  });
+
+  describe('refreshToken', () => {
+    const mockUser = { 
+      id: 1, 
+      email: 'test@example.com', 
+      username: 'testuser', 
+      firstName: 'Test', 
+      lastName: 'User', 
+      role: UserRole.EMPLOYEE,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    it('should refresh token successfully', async () => {
+      mockRequest.user = mockUser;
+      (jwt.sign as jest.Mock).mockReturnValue('new-token');
+
+      await authController.refreshToken(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(jwt.sign).toHaveBeenCalledWith(
         { user: mockUser },
-        process.env.JWT_SECRET || 'test-secret',
-        { expiresIn: '1h' }
+        'test-secret',
+        { expiresIn: '24h' }
       );
-
-      const response = await request(app)
-        .get('/api/v1/auth/profile')
-        .set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.email).toBe(mockUser.email);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: { token: 'new-token', expiresIn: '24h' },
+        timestamp: expect.any(String)
+      });
     });
 
-    it('should return 401 for missing token', async () => {
-      const response = await request(app)
-        .get('/api/v1/auth/profile');
+    it('should throw error when user not authenticated', async () => {
+      mockRequest.user = undefined;
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Access token required');
+      await authController.refreshToken(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('User not authenticated');
+      expect(error.statusCode).toBe(401);
     });
 
-    it('should return 401 for invalid token', async () => {
-      const response = await request(app)
-        .get('/api/v1/auth/profile')
-        .set('Authorization', 'Bearer invalid-token');
+    it('should throw error when JWT_SECRET is not configured', async () => {
+      delete process.env.JWT_SECRET;
+      mockRequest.user = mockUser;
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Invalid or expired token');
+      await authController.refreshToken(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      expect(error.message).toBe('JWT secret not configured');
+      expect(error.statusCode).toBe(500);
     });
   });
 });

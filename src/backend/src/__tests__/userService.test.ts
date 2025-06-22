@@ -80,6 +80,40 @@ describe('UserService', () => {
     });
   });
 
+  describe('findByUsername', () => {
+    it('should return user when found', async () => {
+      const mockUser = {
+        id: 1,
+        email: 'test@example.com',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockPool.query.mockResolvedValue({ rows: [mockUser] });
+
+      const result = await userService.findByUsername('testuser');
+
+      expect(result).toEqual(mockUser);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT id, email, username'),
+        ['testuser']
+      );
+    });
+
+    it('should return null when username not found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await userService.findByUsername('nonexistent');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('create', () => {
     it('should create user successfully', async () => {
       const userData = {

@@ -30,6 +30,12 @@ beforeEach(() => {
 
 // Simple test to make Jest recognize this as a valid test file
 describe('Test Setup', () => {
+  it('should have proper test environment', () => {
+    expect(process.env.NODE_ENV).toBe('test');
+    expect(process.env.JWT_SECRET).toBe('test-secret-key');
+  });
+});
+describe('Test Setup', () => {
   it('should configure test environment correctly', () => {
     expect(process.env.NODE_ENV).toBe('test');
     expect(process.env.JWT_SECRET).toBe('test-secret-key');
