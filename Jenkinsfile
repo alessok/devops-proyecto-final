@@ -12,10 +12,6 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
     
-    tools {
-        nodejs "${NODE_VERSION}"
-    }
-    
     stages {
         stage('Checkout') {
             steps {
