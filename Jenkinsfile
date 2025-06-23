@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'node:18'
+            image 'cibuilds/node:18.16.0-docker'
             args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
