@@ -86,7 +86,8 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    // Start PostgreSQL for testing
+                    // Liberar el puerto 5432 antes de iniciar el contenedor de test
+                    sh 'docker rm -f test-postgres || true'
                     sh '''
                         docker run -d --name test-postgres \
                         -e POSTGRES_DB=${POSTGRES_DB} \
