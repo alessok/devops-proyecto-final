@@ -52,9 +52,10 @@ describe('Categories Routes', () => {
 
   describe('GET /api/categories', () => {
     it('should get all categories successfully', async () => {
+      const now = new Date();
       const mockCategories = [
-        { id: 1, name: 'Electronics', description: 'Electronic items' },
-        { id: 2, name: 'Clothing', description: 'Apparel and fashion' }
+        { id: 1, name: 'Electronics', description: 'Electronic items', isActive: true, createdAt: now, updatedAt: now },
+        { id: 2, name: 'Clothing', description: 'Apparel and fashion', isActive: true, createdAt: now, updatedAt: now }
       ];
 
       mockCategoryService.findAll.mockResolvedValue(mockCategories);
