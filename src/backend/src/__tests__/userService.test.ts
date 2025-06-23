@@ -1,14 +1,13 @@
 import { UserService } from '../services/userService';
 import { UserRole } from '../types';
 import bcrypt from 'bcryptjs';
-import { pool } from '../config/database';
+import * as db from '../config/database';
 
 // Mock the database module
 jest.mock('../config/database');
 
 describe('UserService', () => {
   let userService: UserService;
-  let mockPool: any;
 
   beforeAll(() => {
     userService = new UserService();
@@ -32,19 +31,19 @@ describe('UserService', () => {
         updatedAt: new Date()
       };
 
-      mockPool.query.mockResolvedValue({ rows: [mockUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
       const result = await userService.findById(1);
 
       expect(result).toEqual(mockUser);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, email, username'),
         [1]
       );
     });
 
     it('should return null when user not found', async () => {
-      mockPool.query.mockResolvedValue({ rows: [] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [] });
 
       const result = await userService.findById(999);
 
@@ -67,12 +66,12 @@ describe('UserService', () => {
         updatedAt: new Date()
       };
 
-      mockPool.query.mockResolvedValue({ rows: [mockUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
       const result = await userService.findByEmail('test@example.com');
 
       expect(result).toEqual(mockUser);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, email, username, password'),
         ['test@example.com']
       );
@@ -93,19 +92,19 @@ describe('UserService', () => {
         updatedAt: new Date()
       };
 
-      mockPool.query.mockResolvedValue({ rows: [mockUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
       const result = await userService.findByUsername('testuser');
 
       expect(result).toEqual(mockUser);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, email, username'),
         ['testuser']
       );
     });
 
     it('should return null when username not found', async () => {
-      mockPool.query.mockResolvedValue({ rows: [] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [] });
 
       const result = await userService.findByUsername('nonexistent');
 
@@ -133,7 +132,7 @@ describe('UserService', () => {
         updatedAt: new Date()
       };
 
-      mockPool.query.mockResolvedValue({ rows: [mockCreatedUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockCreatedUser] });
 
       // Mock bcrypt.hash
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedpassword' as never);
@@ -142,7 +141,7 @@ describe('UserService', () => {
 
       expect(result).toEqual(mockCreatedUser);
       expect(bcrypt.hash).toHaveBeenCalledWith(userData.password, 12);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO users'),
         expect.arrayContaining([
           userData.email,
@@ -175,12 +174,12 @@ describe('UserService', () => {
         updatedAt: new Date()
       };
 
-      mockPool.query.mockResolvedValue({ rows: [mockUpdatedUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockUpdatedUser] });
 
       const result = await userService.update(1, updateData);
 
       expect(result).toEqual(mockUpdatedUser);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         expect.stringContaining('UPDATE users SET'),
         expect.arrayContaining(['Updated', 'Name', 1])
       );
@@ -200,7 +199,7 @@ describe('UserService', () => {
       };
 
       // Mock findById call
-      mockPool.query.mockResolvedValue({ rows: [mockUser] });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rows: [mockUser] });
 
       const result = await userService.update(1, {});
 
@@ -210,19 +209,19 @@ describe('UserService', () => {
 
   describe('delete', () => {
     it('should soft delete user successfully', async () => {
-      mockPool.query.mockResolvedValue({ rowCount: 1 });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rowCount: 1 });
 
       const result = await userService.delete(1);
 
       expect(result).toBe(true);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(db.pool.query).toHaveBeenCalledWith(
         'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1',
         [1]
       );
     });
 
     it('should return false when user not found', async () => {
-      mockPool.query.mockResolvedValue({ rowCount: 0 });
+      (db.pool.query as jest.Mock).mockResolvedValue({ rowCount: 0 });
 
       const result = await userService.delete(999);
 
@@ -277,7 +276,7 @@ describe('UserService', () => {
       ];
 
       // Mock count query
-      mockPool.query
+      (db.pool.query as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ count: '2' }] })
         .mockResolvedValueOnce({ rows: mockUsers });
 
@@ -285,7 +284,7 @@ describe('UserService', () => {
 
       expect(result.users).toEqual(mockUsers);
       expect(result.total).toBe(2);
-      expect(mockPool.query).toHaveBeenCalledTimes(2);
+      expect(db.pool.query).toHaveBeenCalledTimes(2);
     });
   });
 });

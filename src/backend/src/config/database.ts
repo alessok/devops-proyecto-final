@@ -1,6 +1,6 @@
-// CommonJS puro para máxima compatibilidad con Jest y mocks
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const config = {
   host: process.env.DB_HOST || 'localhost',

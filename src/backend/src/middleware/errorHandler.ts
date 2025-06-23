@@ -37,14 +37,16 @@ export const errorHandler = (
     message = 'Token expired';
   }
 
-  // Log error for debugging
-  console.error('Error:', {
-    message: error.message,
-    stack: error.stack,
-    url: req.url,
-    method: req.method,
-    timestamp: new Date().toISOString()
-  });
+  // Log error para debugging solo si no es test
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('Error:', {
+      message: error.message,
+      stack: error.stack,
+      url: req.url,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  }
 
   const response: ApiResponse = {
     success: false,
