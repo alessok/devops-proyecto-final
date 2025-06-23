@@ -97,10 +97,19 @@ pipeline {
                         -p 55432:5432 \
                         postgres:15-alpine
                     '''
-                    
-                    // Wait for postgres to be ready
-                    sh 'sleep 10'
-                    
+
+                    // Esperar a que postgres esté listo (wait-for-postgres)
+                    sh '''
+                        for i in {1..15}; do
+                          if pg_isready -h localhost -p 55432 -U ${POSTGRES_USER}; then
+                            echo "Postgres is ready!"
+                            break
+                          fi
+                          echo "Waiting for postgres... ($i)"
+                          sleep 2
+                        done
+                    '''
+
                     // Run database migrations
                     sh '''
                         export PGPASSWORD=${POSTGRES_PASSWORD}
