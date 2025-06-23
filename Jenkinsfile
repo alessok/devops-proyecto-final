@@ -86,11 +86,14 @@ pipeline {
         stage('Test') {
             steps {
                 script {
+                    // Crear red de Docker si no existe
+                    sh 'docker network inspect jenkins-test >/dev/null 2>&1 || docker network create jenkins-test'
                     // Eliminar cualquier contenedor (activo o detenido) que use el puerto 55432 antes de iniciar el contenedor de test
                     sh 'docker ps -a --filter "publish=55432" -q | xargs -r docker rm -f'
                     sh 'docker rm -f test-postgres || true'
                     sh '''
                         docker run -d --name test-postgres \
+                        --network jenkins-test \
                         -e POSTGRES_DB=${POSTGRES_DB} \
                         -e POSTGRES_USER=${POSTGRES_USER} \
                         -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
@@ -101,7 +104,7 @@ pipeline {
                     // Esperar a que postgres esté listo (wait-for-postgres)
                     sh '''
                         for i in {1..15}; do
-                          if pg_isready -h localhost -p 55432 -U ${POSTGRES_USER}; then
+                          if pg_isready -h test-postgres -p 5432 -U ${POSTGRES_USER}; then
                             echo "Postgres is ready!"
                             break
                           fi
@@ -113,8 +116,8 @@ pipeline {
                     // Run database migrations
                     sh '''
                         export PGPASSWORD=${POSTGRES_PASSWORD}
-                        psql -h localhost -p 55432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V3__create_backend_compatible_tables.sql
-                        psql -h localhost -p 55432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V4__insert_initial_data.sql
+                        psql -h test-postgres -p 5432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V3__create_backend_compatible_tables.sql
+                        psql -h test-postgres -p 5432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V4__insert_initial_data.sql
                     '''
                 }
                 
@@ -122,8 +125,8 @@ pipeline {
                     echo 'Running backend tests...'
                     sh '''
                         export NODE_ENV=test
-                        export DB_HOST=localhost
-                        export DB_PORT=55432
+                        export DB_HOST=test-postgres
+                        export DB_PORT=5432
                         export DB_NAME=${POSTGRES_DB}
                         export DB_USER=${POSTGRES_USER}
                         export DB_PASS=${POSTGRES_PASSWORD}
