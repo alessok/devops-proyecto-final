@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'cibuilds/node:18.16.0-docker'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     environment {
         // Define environment variables
@@ -293,27 +288,12 @@ pipeline {
         }
         success {
             echo 'Pipeline completed successfully!'
-            slackSend(
-                channel: '#deployments',
-                color: 'good',
-                message: "✅ Pipeline SUCCESS: Job ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
-            )
         }
         failure {
             echo 'Pipeline failed!'
-            slackSend(
-                channel: '#deployments',
-                color: 'danger',
-                message: "❌ Pipeline FAILED: Job ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
-            )
         }
         unstable {
             echo 'Pipeline is unstable!'
-            slackSend(
-                channel: '#deployments',
-                color: 'warning',
-                message: "⚠️ Pipeline UNSTABLE: Job ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
-            )
         }
     }
 }
