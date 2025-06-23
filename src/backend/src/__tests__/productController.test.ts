@@ -51,8 +51,28 @@ describe('ProductController', () => {
   describe('getAllProducts', () => {
     it('should get all products with pagination', async () => {
       const mockProducts = [
-        { id: 1, name: 'Product 1', price: 100, categoryId: 1 },
-        { id: 2, name: 'Product 2', price: 200, categoryId: 2 }
+        {
+          id: 1,
+          name: 'Product 1',
+          description: 'desc',
+          price: 100,
+          categoryId: 1,
+          stockQuantity: 10,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 2,
+          name: 'Product 2',
+          description: 'desc',
+          price: 200,
+          categoryId: 2,
+          stockQuantity: 5,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       ];
 
       mockReq.query = { page: '1', limit: '10' };
@@ -81,7 +101,17 @@ describe('ProductController', () => {
 
     it('should handle search and category filter', async () => {
       const mockProducts = [
-        { id: 1, name: 'Electronics Product', price: 100, categoryId: 1 }
+        {
+          id: 1,
+          name: 'Electronics Product',
+          description: 'desc',
+          price: 100,
+          categoryId: 1,
+          stockQuantity: 10,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       ];
 
       mockReq.query = { page: '1', limit: '10', search: 'electronics', categoryId: '1' };
@@ -106,7 +136,17 @@ describe('ProductController', () => {
 
   describe('getProductById', () => {
     it('should get product by id successfully', async () => {
-      const mockProduct = { id: 1, name: 'Product 1', price: 100, categoryId: 1 };
+      const mockProduct = {
+        id: 1,
+        name: 'Product 1',
+        description: 'desc',
+        price: 100,
+        categoryId: 1,
+        stockQuantity: 10,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       
       mockReq.params = { id: '1' };
       mockProductService.findById.mockResolvedValue(mockProduct);
@@ -150,12 +190,18 @@ describe('ProductController', () => {
     it('should create product successfully', async () => {
       const productData = {
         name: 'New Product',
-        description: 'Product description',
+        description: 'desc',
         price: 150,
         categoryId: 1,
-        stock: 10
+        stockQuantity: 10
       };
-      const createdProduct = { id: 1, ...productData };
+      const createdProduct = {
+        id: 1,
+        ...productData,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockReq.body = productData;
       mockProductService.create.mockResolvedValue(createdProduct);
@@ -189,7 +235,17 @@ describe('ProductController', () => {
   describe('updateProduct', () => {
     it('should update product successfully', async () => {
       const updateData = { name: 'Updated Product', price: 200 };
-      const updatedProduct = { id: 1, ...updateData };
+      const updatedProduct = {
+        id: 1,
+        name: 'Updated Product',
+        description: 'desc',
+        price: 200,
+        categoryId: 1,
+        stockQuantity: 10,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockReq.params = { id: '1' };
       mockReq.body = updateData;

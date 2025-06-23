@@ -56,8 +56,30 @@ describe('Users Routes', () => {
   describe('GET /api/users', () => {
     it('should get all users with pagination', async () => {
       const mockUsers = [
-        { id: 1, username: 'user1', email: 'user1@example.com', role: UserRole.USER },
-        { id: 2, username: 'user2', email: 'user2@example.com', role: UserRole.ADMIN }
+        {
+          id: 1,
+          username: 'user1',
+          email: 'user1@example.com',
+          password: 'hashed',
+          firstName: 'User',
+          lastName: 'One',
+          role: UserRole.EMPLOYEE,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 2,
+          username: 'user2',
+          email: 'user2@example.com',
+          password: 'hashed',
+          firstName: 'User',
+          lastName: 'Two',
+          role: UserRole.ADMIN,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
       ];
 
       mockUserService.findAll.mockResolvedValue({ users: mockUsers, total: 2 });
@@ -92,11 +114,17 @@ describe('Users Routes', () => {
 
   describe('GET /api/users/:id', () => {
     it('should get user by id successfully', async () => {
-      const mockUser = { 
-        id: 1, 
-        username: 'testuser', 
-        email: 'test@example.com', 
-        role: UserRole.USER 
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'hashed',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       mockUserService.findById.mockResolvedValue(mockUser);
@@ -127,7 +155,18 @@ describe('Users Routes', () => {
   describe('PUT /api/users/:id', () => {
     it('should update user successfully', async () => {
       const updateData = { username: 'updateduser', email: 'updated@example.com' };
-      const updatedUser = { id: 1, ...updateData, role: UserRole.USER };
+      const updatedUser = {
+        id: 1,
+        username: 'updateduser',
+        email: 'updated@example.com',
+        password: 'hashed',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockUserService.update.mockResolvedValue(updatedUser);
 

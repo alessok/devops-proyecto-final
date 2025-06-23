@@ -84,7 +84,14 @@ describe('Categories Routes', () => {
 
   describe('GET /api/categories/:id', () => {
     it('should get category by id successfully', async () => {
-      const mockCategory = { id: 1, name: 'Electronics', description: 'Electronic items' };
+      const mockCategory = {
+        id: 1,
+        name: 'Electronics',
+        description: 'Electronic items',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockCategoryService.findById.mockResolvedValue(mockCategory);
 
@@ -114,7 +121,13 @@ describe('Categories Routes', () => {
   describe('POST /api/categories', () => {
     it('should create new category successfully', async () => {
       const categoryData = { name: 'Books', description: 'Books and literature' };
-      const createdCategory = { id: 3, ...categoryData };
+      const createdCategory = {
+        id: 3,
+        ...categoryData,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockCategoryService.create.mockResolvedValue(createdCategory);
 
@@ -146,7 +159,13 @@ describe('Categories Routes', () => {
   describe('PUT /api/categories/:id', () => {
     it('should update category successfully', async () => {
       const updateData = { name: 'Updated Electronics', description: 'Updated description' };
-      const updatedCategory = { id: 1, ...updateData };
+      const updatedCategory = {
+        id: 1,
+        ...updateData,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       mockCategoryService.update.mockResolvedValue(updatedCategory);
 
