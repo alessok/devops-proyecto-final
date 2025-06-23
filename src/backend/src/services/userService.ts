@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+import { pool } from '../config/database';
 import { User, UserCreate, UserUpdate, UserRole } from '../types';
 import bcrypt from 'bcryptjs';
 

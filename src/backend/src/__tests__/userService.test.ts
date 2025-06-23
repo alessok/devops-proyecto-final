@@ -1,6 +1,7 @@
 import { UserService } from '../services/userService';
 import { UserRole } from '../types';
 import bcrypt from 'bcryptjs';
+import { pool } from '../config/database';
 
 // Mock the database module
 jest.mock('../config/database');
@@ -10,8 +11,6 @@ describe('UserService', () => {
   let mockPool: any;
 
   beforeAll(() => {
-    const dbModule = require('../config/database');
-    mockPool = dbModule.default;
     userService = new UserService();
   });
 

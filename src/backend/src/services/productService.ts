@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+import { pool } from '../config/database';
 import { Product, ProductCreate, ProductUpdate } from '../types';
 
 export class ProductService {

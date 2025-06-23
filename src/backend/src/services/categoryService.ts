@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+import { pool } from '../config/database';
 import { Category, CategoryCreate, CategoryUpdate } from '../types';
 
 export class CategoryService {

@@ -1,7 +1,5 @@
 import { ProductService } from '../services/productService';
-
-// Cambia el import ESM por require CommonJS para compatibilidad con database.ts en CommonJS puro
-const { pool } = require('../config/database');
+import { pool } from '../config/database';
 
 // Mock the database module
 jest.mock('../config/database');

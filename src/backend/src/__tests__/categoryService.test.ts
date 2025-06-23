@@ -1,4 +1,5 @@
 import { CategoryService } from '../services/categoryService';
+import { pool } from '../config/database';
 
 // Mock the database module
 jest.mock('../config/database');
@@ -8,9 +9,8 @@ describe('CategoryService', () => {
   let mockPool: any;
 
   beforeAll(() => {
-    const dbModule = require('../config/database');
-    mockPool = dbModule.default;
     categoryService = new CategoryService();
+    mockPool = pool;
   });
 
   beforeEach(() => {

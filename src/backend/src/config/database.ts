@@ -36,4 +36,4 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { pool, testConnection };
+export { pool, testConnection };
