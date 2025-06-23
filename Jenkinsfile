@@ -104,8 +104,8 @@ pipeline {
                     // Run database migrations
                     sh '''
                         export PGPASSWORD=${POSTGRES_PASSWORD}
-                        psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V3__create_backend_compatible_tables.sql
-                        psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V4__insert_initial_data.sql
+                        psql -h localhost -p 55432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V3__create_backend_compatible_tables.sql
+                        psql -h localhost -p 55432 -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f database/migrations/V4__insert_initial_data.sql
                     '''
                 }
                 
