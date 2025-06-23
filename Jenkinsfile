@@ -157,13 +157,6 @@ pipeline {
         }
         
         stage('SonarQube Analysis') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    changeRequest()
-                }
-            }
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
