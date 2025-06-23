@@ -86,8 +86,8 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    // Eliminar cualquier contenedor que use el puerto 5432 antes de iniciar el contenedor de test
-                    sh 'docker ps -q --filter "publish=5432" | xargs -r docker rm -f'
+                    // Eliminar cualquier contenedor (activo o detenido) que use el puerto 5432 antes de iniciar el contenedor de test
+                    sh 'docker ps -a --filter "publish=5432" -q | xargs -r docker rm -f'
                     sh 'docker rm -f test-postgres || true'
                     sh '''
                         docker run -d --name test-postgres \
