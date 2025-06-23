@@ -86,15 +86,15 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    // Eliminar cualquier contenedor (activo o detenido) que use el puerto 5432 antes de iniciar el contenedor de test
-                    sh 'docker ps -a --filter "publish=5432" -q | xargs -r docker rm -f'
+                    // Eliminar cualquier contenedor (activo o detenido) que use el puerto 55432 antes de iniciar el contenedor de test
+                    sh 'docker ps -a --filter "publish=55432" -q | xargs -r docker rm -f'
                     sh 'docker rm -f test-postgres || true'
                     sh '''
                         docker run -d --name test-postgres \
                         -e POSTGRES_DB=${POSTGRES_DB} \
                         -e POSTGRES_USER=${POSTGRES_USER} \
                         -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
-                        -p 5432:5432 \
+                        -p 55432:5432 \
                         postgres:15-alpine
                     '''
                     
@@ -114,7 +114,7 @@ pipeline {
                     sh '''
                         export NODE_ENV=test
                         export DB_HOST=localhost
-                        export DB_PORT=5432
+                        export DB_PORT=55432
                         export DB_NAME=${POSTGRES_DB}
                         export DB_USER=${POSTGRES_USER}
                         export DB_PASS=${POSTGRES_PASSWORD}
