@@ -140,8 +140,7 @@ pipeline {
             }
             post {
                 always {
-                    // Publish test results
-                    publishTestResults testResultsPattern: 'src/backend/coverage/clover.xml'
+                    // Publish test results (eliminado publishTestResults, solo cobertura HTML)
                     publishHTML([
                         allowMissing: false,
                         alwaysLinkToLastBuild: false,
