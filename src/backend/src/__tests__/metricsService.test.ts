@@ -1,13 +1,3 @@
-import client from 'prom-client';
-import {
-  register,
-  httpRequestsTotal,
-  httpRequestDuration,
-  activeConnections,
-  databaseConnectionPool,
-  businessMetrics
-} from '../services/metricsService';
-
 // Mock prom-client
 jest.mock('prom-client', () => ({
   Registry: jest.fn().mockImplementation(() => ({
@@ -29,8 +19,26 @@ jest.mock('prom-client', () => ({
 }));
 
 describe('MetricsService', () => {
+  let register: any;
+  let httpRequestsTotal: any;
+  let httpRequestDuration: any;
+  let activeConnections: any;
+  let databaseConnectionPool: any;
+  let businessMetrics: any;
+  let client: any;
+
   beforeEach(() => {
+    jest.resetModules();
     jest.clearAllMocks();
+    // Importar después de resetModules y mocks
+    client = require('prom-client');
+    const metrics = require('../services/metricsService');
+    register = metrics.register;
+    httpRequestsTotal = metrics.httpRequestsTotal;
+    httpRequestDuration = metrics.httpRequestDuration;
+    activeConnections = metrics.activeConnections;
+    databaseConnectionPool = metrics.databaseConnectionPool;
+    businessMetrics = metrics.businessMetrics;
   });
 
   describe('Registry', () => {

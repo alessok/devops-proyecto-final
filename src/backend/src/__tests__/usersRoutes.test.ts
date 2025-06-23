@@ -21,24 +21,14 @@ jest.mock('../middleware/auth', () => ({
   }
 }));
 
-// Create an Express app for testing
-import express from 'express';
-import usersRouter from '../routes/users';
-import { errorHandler } from '../middleware/errorHandler';
-
-const app: Express = express();
-app.use(express.json());
-app.use('/api/users', usersRouter);
-app.use(errorHandler);
-
 const MockedUserService = UserService as jest.MockedClass<typeof UserService>;
 
 describe('Users Routes', () => {
   let mockUserService: jest.Mocked<UserService>;
+  let app: Express;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
     mockUserService = {
       findAll: jest.fn(),
       findById: jest.fn(),
@@ -49,12 +39,19 @@ describe('Users Routes', () => {
       delete: jest.fn(),
       verifyPassword: jest.fn()
     } as any;
-
     MockedUserService.mockImplementation(() => mockUserService);
+    // Nueva app y router en cada test
+    const expressApp = require('express')();
+    expressApp.use(require('express').json());
+    const createUsersRouter = require('../routes/users').default;
+    expressApp.use('/api/users', createUsersRouter(mockUserService));
+    expressApp.use(require('../middleware/errorHandler').errorHandler);
+    app = expressApp;
   });
 
   describe('GET /api/users', () => {
     it('should get all users with pagination', async () => {
+      const now = new Date();
       const mockUsers = [
         {
           id: 1,
@@ -65,8 +62,8 @@ describe('Users Routes', () => {
           lastName: 'One',
           role: UserRole.EMPLOYEE,
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         },
         {
           id: 2,
@@ -77,8 +74,8 @@ describe('Users Routes', () => {
           lastName: 'Two',
           role: UserRole.ADMIN,
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }
       ];
 
@@ -92,7 +89,32 @@ describe('Users Routes', () => {
         success: true,
         message: 'Users retrieved successfully',
         data: {
-          users: mockUsers,
+          users: [
+            expect.objectContaining({
+              id: 1,
+              username: 'user1',
+              email: 'user1@example.com',
+              password: 'hashed',
+              firstName: 'User',
+              lastName: 'One',
+              role: UserRole.EMPLOYEE,
+              isActive: true,
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String)
+            }),
+            expect.objectContaining({
+              id: 2,
+              username: 'user2',
+              email: 'user2@example.com',
+              password: 'hashed',
+              firstName: 'User',
+              lastName: 'Two',
+              role: UserRole.ADMIN,
+              isActive: true,
+              createdAt: expect.any(String),
+              updatedAt: expect.any(String)
+            })
+          ],
           pagination: {
             currentPage: 1,
             totalPages: 1,
@@ -114,6 +136,7 @@ describe('Users Routes', () => {
 
   describe('GET /api/users/:id', () => {
     it('should get user by id successfully', async () => {
+      const now = new Date();
       const mockUser = {
         id: 1,
         username: 'testuser',
@@ -123,10 +146,9 @@ describe('Users Routes', () => {
         lastName: 'User',
         role: UserRole.EMPLOYEE,
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now
       };
-
       mockUserService.findById.mockResolvedValue(mockUser);
 
       const response = await request(app)
@@ -136,7 +158,18 @@ describe('Users Routes', () => {
       expect(response.body).toMatchObject({
         success: true,
         message: 'User retrieved successfully',
-        data: mockUser
+        data: expect.objectContaining({
+          id: 1,
+          username: 'testuser',
+          email: 'test@example.com',
+          password: 'hashed',
+          firstName: 'Test',
+          lastName: 'User',
+          role: UserRole.EMPLOYEE,
+          isActive: true,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String)
+        })
       });
       expect(mockUserService.findById).toHaveBeenCalledWith(1);
     });
@@ -155,6 +188,7 @@ describe('Users Routes', () => {
   describe('PUT /api/users/:id', () => {
     it('should update user successfully', async () => {
       const updateData = { username: 'updateduser', email: 'updated@example.com' };
+      const now = new Date();
       const updatedUser = {
         id: 1,
         username: 'updateduser',
@@ -164,10 +198,11 @@ describe('Users Routes', () => {
         lastName: 'User',
         role: UserRole.EMPLOYEE,
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now
       };
-
+      // Mock findById para que exista el usuario antes de actualizar
+      mockUserService.findById.mockResolvedValue(updatedUser);
       mockUserService.update.mockResolvedValue(updatedUser);
 
       const response = await request(app)
@@ -178,37 +213,60 @@ describe('Users Routes', () => {
       expect(response.body).toMatchObject({
         success: true,
         message: 'User updated successfully',
-        data: updatedUser
+        data: expect.objectContaining({
+          id: 1,
+          username: 'updateduser',
+          email: 'updated@example.com',
+          password: 'hashed',
+          firstName: 'Test',
+          lastName: 'User',
+          role: UserRole.EMPLOYEE,
+          isActive: true,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String)
+        })
       });
       expect(mockUserService.update).toHaveBeenCalledWith(1, updateData);
     });
 
     it('should handle validation errors', async () => {
       const invalidData = { email: 'invalid-email' };
-
+      // Simular error de validación: la ruta debe responder 400 y no llamar a update
       await request(app)
         .put('/api/users/1')
         .send(invalidData)
         .expect(400);
-
       expect(mockUserService.update).not.toHaveBeenCalled();
     });
 
     it('should handle user not found for update', async () => {
       const updateData = { username: 'updateduser' };
-      mockUserService.update.mockResolvedValue(null);
-
+      mockUserService.findById.mockResolvedValue(null);
+      // No se debe llamar a update si el usuario no existe
       await request(app)
         .put('/api/users/999')
         .send(updateData)
         .expect(404);
-
-      expect(mockUserService.update).toHaveBeenCalledWith(999, updateData);
+      expect(mockUserService.update).not.toHaveBeenCalled();
     });
   });
 
   describe('DELETE /api/users/:id', () => {
     it('should delete user successfully', async () => {
+      // Mock findById para que exista el usuario antes de eliminar
+      const now = new Date();
+      mockUserService.findById.mockResolvedValue({
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'hashed',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now
+      });
       mockUserService.delete.mockResolvedValue(true);
 
       const response = await request(app)
@@ -223,13 +281,14 @@ describe('Users Routes', () => {
     });
 
     it('should handle user not found for deletion', async () => {
+      mockUserService.findById.mockResolvedValue(null);
       mockUserService.delete.mockResolvedValue(false);
 
       await request(app)
         .delete('/api/users/999')
         .expect(404);
-
-      expect(mockUserService.delete).toHaveBeenCalledWith(999);
+      // No se debe esperar que delete haya sido llamado
+      expect(mockUserService.delete).not.toHaveBeenCalled();
     });
   });
 });

@@ -3,9 +3,11 @@ import { ProductController } from '../controllers/productController';
 import { validate, validateQuery } from '../validation/validator';
 import { createProductSchema, updateProductSchema, paginationSchema } from '../validation/schemas';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
+import { ProductService } from '../services/productService';
 
 const router = Router();
-const productController = new ProductController();
+const productService = new ProductService();
+const productController = new ProductController(productService);
 
 // All routes require authentication
 router.use(authenticateToken);

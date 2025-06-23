@@ -1,20 +1,8 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
+// CommonJS puro para máxima compatibilidad con Jest y mocks
+const { Pool } = require('pg');
+require('dotenv').config();
 
-dotenv.config();
-
-interface DatabaseConfig {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  max: number;
-  idleTimeoutMillis: number;
-  connectionTimeoutMillis: number;
-}
-
-const config: DatabaseConfig = {
+const config = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'inventory_db',
@@ -25,10 +13,9 @@ const config: DatabaseConfig = {
   connectionTimeoutMillis: 2000,
 };
 
-export const pool = new Pool(config);
+const pool = new Pool(config);
 
-// Test database connection
-export const testConnection = async (): Promise<boolean> => {
+const testConnection = async () => {
   try {
     const client = await pool.connect();
     await client.query('SELECT NOW()');
@@ -41,7 +28,6 @@ export const testConnection = async (): Promise<boolean> => {
   }
 };
 
-// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n🔄 Closing database connections...');
   pool.end(() => {
@@ -50,4 +36,4 @@ process.on('SIGINT', () => {
   });
 });
 
-export default pool;
+module.exports = { pool, testConnection };

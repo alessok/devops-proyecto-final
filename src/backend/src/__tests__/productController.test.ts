@@ -30,7 +30,8 @@ describe('ProductController', () => {
 
     MockedProductService.mockImplementation(() => mockProductService);
 
-    productController = new ProductController();
+    // Inyección explícita de la instancia mockeada
+    productController = new ProductController(mockProductService);
     
     mockJson = jest.fn();
     mockStatus = jest.fn().mockReturnValue({ json: mockJson });
@@ -249,10 +250,13 @@ describe('ProductController', () => {
 
       mockReq.params = { id: '1' };
       mockReq.body = updateData;
+      // Mock findById para que devuelva un producto existente
+      mockProductService.findById.mockResolvedValue(updatedProduct);
       mockProductService.update.mockResolvedValue(updatedProduct);
 
       await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(1);
       expect(mockProductService.update).toHaveBeenCalledWith(1, updateData);
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
@@ -269,10 +273,12 @@ describe('ProductController', () => {
 
       mockReq.params = { id: '999' };
       mockReq.body = updateData;
-      mockProductService.update.mockResolvedValue(null);
+      // Mock findById para que devuelva null
+      mockProductService.findById.mockResolvedValue(null);
 
       await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(999);
       expect(mockNext).toHaveBeenCalledWith(
         expect.any(AppError)
       );
@@ -284,10 +290,25 @@ describe('ProductController', () => {
 
       mockReq.params = { id: '1' };
       mockReq.body = updateData;
+      // Mock findById para que devuelva un producto existente
+      const existingProduct = {
+        id: 1,
+        name: 'Product 1',
+        description: 'desc',
+        price: 100,
+        categoryId: 1,
+        stockQuantity: 10,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockProductService.findById.mockResolvedValue(existingProduct);
       mockProductService.update.mockRejectedValue(error);
 
       await productController.updateProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(1);
+      expect(mockProductService.update).toHaveBeenCalledWith(1, updateData);
       expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
@@ -295,10 +316,24 @@ describe('ProductController', () => {
   describe('deleteProduct', () => {
     it('should delete product successfully', async () => {
       mockReq.params = { id: '1' };
+      // Mock findById para que devuelva un producto existente
+      const existingProduct = {
+        id: 1,
+        name: 'Product 1',
+        description: 'desc',
+        price: 100,
+        categoryId: 1,
+        stockQuantity: 10,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockProductService.findById.mockResolvedValue(existingProduct);
       mockProductService.delete.mockResolvedValue(true);
 
       await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(1);
       expect(mockProductService.delete).toHaveBeenCalledWith(1);
       expect(mockStatus).toHaveBeenCalledWith(200);
       expect(mockJson).toHaveBeenCalledWith(
@@ -311,10 +346,12 @@ describe('ProductController', () => {
 
     it('should handle product not found for deletion', async () => {
       mockReq.params = { id: '999' };
-      mockProductService.delete.mockResolvedValue(false);
+      // Mock findById para que devuelva null
+      mockProductService.findById.mockResolvedValue(null);
 
       await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(999);
       expect(mockNext).toHaveBeenCalledWith(
         expect.any(AppError)
       );
@@ -324,10 +361,25 @@ describe('ProductController', () => {
       const error = new Error('Deletion failed');
 
       mockReq.params = { id: '1' };
+      // Mock findById para que devuelva un producto existente
+      const existingProduct = {
+        id: 1,
+        name: 'Product 1',
+        description: 'desc',
+        price: 100,
+        categoryId: 1,
+        stockQuantity: 10,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockProductService.findById.mockResolvedValue(existingProduct);
       mockProductService.delete.mockRejectedValue(error);
 
       await productController.deleteProduct(mockReq as Request, mockRes as Response, mockNext);
 
+      expect(mockProductService.findById).toHaveBeenCalledWith(1);
+      expect(mockProductService.delete).toHaveBeenCalledWith(1);
       expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
