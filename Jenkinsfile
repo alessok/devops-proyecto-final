@@ -2,18 +2,17 @@ pipeline {
     agent any
     
     environment {
-        // Define environment variables
         NODE_VERSION = '18'
         POSTGRES_DB = 'inventory_db'
         POSTGRES_USER = 'inventory_user'
         POSTGRES_PASSWORD = 'inventory_pass'
         JWT_SECRET = 'test-jwt-secret-for-ci'
         SONARQUBE_TOKEN = credentials('sonarqube-token')
-        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_HUB_USERNAME = credentials('docker-hub-credentials_username') // Asumiendo que guardas el user en una credencial
     }
     
     stages {
-        
+
         // --- AÑADE ESTA NUEVA ETAPA ---
         stage('Cleanup Workspace') {
             steps {
@@ -165,31 +164,149 @@ pipeline {
             }
         }
         
+    stages {
+        stage('Cleanup Workspace') {
+            steps {
+                echo 'Cleaning up the workspace before checkout...'
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code...'
+                checkout scm
+            }
+        }
+        
+        stage('Install Dependencies') {
+            parallel {
+                stage('Backend Dependencies') {
+                    steps {
+                        dir('src/backend') {
+                            sh 'npm ci'
+                        }
+                    }
+                }
+                stage('Frontend Dependencies') {
+                    steps {
+                        dir('src/frontend') {
+                            sh 'npm ci'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Lint and Format Check') {
+            parallel {
+                stage('Backend Lint') {
+                    steps {
+                        dir('src/backend') {
+                            sh 'npm run lint' // Falla el build si hay errores
+                        }
+                    }
+                }
+                stage('Frontend Lint') {
+                    steps {
+                        dir('src/frontend') {
+                            sh 'npm run lint' // Falla el build si hay errores
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Build') {
+            parallel {
+                stage('Backend Build') {
+                    steps {
+                        dir('src/backend') {
+                            sh 'npm run build'
+                        }
+                    }
+                }
+                stage('Frontend Build') {
+                    steps {
+                        dir('src/frontend') {
+                            sh 'npm run build'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                script {
+                    sh 'docker network inspect jenkins-test >/dev/null 2>&1 || docker network create jenkins-test'
+                    sh 'docker rm -f test-postgres || true'
+                    sh '''
+                        docker run -d --name test-postgres \
+                        --network jenkins-test \
+                        -e POSTGRES_DB=${POSTGRES_DB} \
+                        -e POSTGRES_USER=${POSTGRES_USER} \
+                        -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
+                        postgres:15-alpine
+                    '''
+                    
+                    // CORREGIDO: Usando docker exec
+                    sh '''
+                        echo "Waiting for postgres..."
+                        for i in {1..15}; do
+                          if docker exec test-postgres pg_isready -U ${POSTGRES_USER}; then
+                            echo "Postgres is ready!"
+                            break
+                          fi
+                          sleep 2
+                        done
+                    '''
+                    
+                    // CORREGIDO: Usando docker exec
+                    sh '''
+                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
+                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
+                    '''
+                }
+                
+                dir('src/backend') {
+                    sh '''
+                        export NODE_ENV=test
+                        export DB_HOST=test-postgres
+                        export DB_PORT=5432
+                        export DB_NAME=${POSTGRES_DB}
+                        export DB_USER=${POSTGRES_USER}
+                        export DB_PASS=${POSTGRES_PASSWORD}
+                        export JWT_SECRET=${JWT_SECRET}
+                        npm test -- --coverage --watchAll=false
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker rm -f test-postgres || true'
+                    publishHTML(reportDir: 'src/backend/coverage/lcov-report', reportFiles: 'index.html', reportName: 'Coverage Report')
+                }
+            }
+        }
+        
         stage('SonarQube Analysis') {
             steps {
+                // CORREGIDO: Comando simplificado y con versión fija
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        docker run --rm \
+                        docker run --platform linux/amd64 --rm \
                         -v "$PWD":/usr/src \
                         -w /usr/src \
                         --network jenkins-test \
                         -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
-                        sonarsource/sonar-scanner-cli:latest \
-                        sonar-scanner \
-                        -Dsonar.token=${SONARQUBE_TOKEN}
+                        sonarsource/sonar-scanner-cli:5.0.1.3006
                     '''
                 }
             }
         }
         
         stage('Quality Gate') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    changeRequest()
-                }
-            }
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
@@ -198,18 +315,14 @@ pipeline {
         }
         
         stage('Build Docker Images') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                }
-            }
+            when { branch 'main' } // o la rama que prefieras
             parallel {
                 stage('Backend Docker Image') {
                     steps {
                         dir('src/backend') {
                             script {
-                                def backendImage = docker.build("inventory-backend:${env.BUILD_NUMBER}")
+                                // Nombre final y correcto de la imagen
+                                def backendImage = docker.build("alessok/inventory-backend:${env.BUILD_NUMBER}")
                                 docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
                                     backendImage.push()
                                     backendImage.push('latest')
@@ -222,7 +335,8 @@ pipeline {
                     steps {
                         dir('src/frontend') {
                             script {
-                                def frontendImage = docker.build("inventory-frontend:${env.BUILD_NUMBER}")
+                                // Nombre final y correcto de la imagen
+                                def frontendImage = docker.build("alessok/inventory-frontend:${env.BUILD_NUMBER}")
                                 docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
                                     frontendImage.push()
                                     frontendImage.push('latest')
@@ -298,18 +412,15 @@ pipeline {
     }
     
     post {
+        // CORREGIDO: Se eliminó el peligroso 'docker system prune'
         always {
-            echo 'Cleaning up...'
-            sh 'docker system prune -f'
+            echo 'Pipeline finished.'
         }
         success {
             echo 'Pipeline completed successfully!'
         }
         failure {
             echo 'Pipeline failed!'
-        }
-        unstable {
-            echo 'Pipeline is unstable!'
         }
     }
 }
