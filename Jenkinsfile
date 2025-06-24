@@ -167,12 +167,6 @@ pipeline {
                         -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
                         sonarsource/sonar-scanner-cli:latest \
                         sonar-scanner \
-                        -Dsonar.projectKey=inventory-management \
-                        -Dsonar.organization=alessandro \
-                        -Dsonar.sources=src/backend,src/frontend \
-                        -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
-                        -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
-                        -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
                         -Dsonar.token=${SONARQUBE_TOKEN}
                     '''
                 }
