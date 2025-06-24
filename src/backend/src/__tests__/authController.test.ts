@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthController } from '../controllers/authController';
 import { UserService } from '../services/userService';
 import { AppError } from '../middleware/errorHandler';
-import { UserRole } from '../types';
+import { User, UserRole } from '../types';
 
 // Mock the UserService
 jest.mock('../services/userService');
@@ -12,7 +12,7 @@ jest.mock('jsonwebtoken');
 describe('AuthController', () => {
   let authController: AuthController;
   let mockUserService: jest.Mocked<UserService>;
-  let mockRequest: Partial<Request> & { user?: any };
+  let mockRequest: Partial<Request> & { user?: Omit<User, 'password'> };
   let mockResponse: Partial<Response>;
   let mockNext: jest.MockedFunction<NextFunction>;
 
@@ -40,7 +40,7 @@ describe('AuthController', () => {
   });
 
   describe('login', () => {
-    const mockUser = {
+    const mockUser: User = {
       id: 1,
       email: 'test@example.com',
       username: 'testuser',
@@ -196,7 +196,7 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    const mockUser = {
+    const mockUser: User = {
       id: 1,
       email: 'test@example.com',
       username: 'testuser',
@@ -210,16 +210,16 @@ describe('AuthController', () => {
     };
 
     it('should get user profile successfully', async () => {
-      mockRequest.user = { 
-        id: 1, 
-        email: 'test@example.com', 
-        username: 'testuser', 
-        firstName: 'Test', 
-        lastName: 'User', 
-        role: UserRole.EMPLOYEE,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+      mockRequest.user = {
+        id: mockUser.id,
+        email: mockUser.email,
+        username: mockUser.username,
+        firstName: mockUser.firstName,
+        lastName: mockUser.lastName,
+        role: mockUser.role,
+        isActive: mockUser.isActive,
+        createdAt: mockUser.createdAt,
+        updatedAt: mockUser.updatedAt
       };
       mockUserService.findById.mockResolvedValue(mockUser);
 
@@ -247,12 +247,13 @@ describe('AuthController', () => {
     });
 
     it('should throw error when user not found', async () => {
-      mockRequest.user = { 
-        id: 1, 
-        email: 'test@example.com', 
-        username: 'testuser', 
-        firstName: 'Test', 
-        lastName: 'User', 
+      mockRequest.user = {
+        id: 1,
+        email: 'test@example.com',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        password: '',
         role: UserRole.EMPLOYEE,
         isActive: true,
         createdAt: new Date(),

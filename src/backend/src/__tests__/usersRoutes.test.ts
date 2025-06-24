@@ -27,7 +27,7 @@ describe('Users Routes', () => {
   let mockUserService: jest.Mocked<UserService>;
   let app: Express;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     mockUserService = {
       findAll: jest.fn(),
@@ -38,14 +38,16 @@ describe('Users Routes', () => {
       update: jest.fn(),
       delete: jest.fn(),
       verifyPassword: jest.fn()
-    } as any;
+    } as Partial<jest.Mocked<UserService>> as jest.Mocked<UserService>;
     MockedUserService.mockImplementation(() => mockUserService);
     // Nueva app y router en cada test
-    const expressApp = require('express')();
-    expressApp.use(require('express').json());
-    const createUsersRouter = require('../routes/users').default;
+    const expressModule = await import('express');
+    const expressApp = expressModule.default();
+    expressApp.use(expressModule.json());
+    const createUsersRouter = (await import('../routes/users')).default;
     expressApp.use('/api/users', createUsersRouter(mockUserService));
-    expressApp.use(require('../middleware/errorHandler').errorHandler);
+    const { errorHandler } = await import('../middleware/errorHandler');
+    expressApp.use(errorHandler);
     app = expressApp;
   });
 

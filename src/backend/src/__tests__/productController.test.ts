@@ -25,8 +25,11 @@ describe('ProductController', () => {
       findById: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn()
-    } as any;
+      delete: jest.fn(),
+      findLowStock: jest.fn(),
+      updateStock: jest.fn(),
+      getInventoryStats: jest.fn()
+    } as jest.Mocked<ProductService>;
 
     MockedProductService.mockImplementation(() => mockProductService);
 

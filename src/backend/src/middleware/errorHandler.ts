@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { ApiResponse } from '../types';
 
 export class AppError extends Error {
@@ -17,8 +17,7 @@ export class AppError extends Error {
 export const errorHandler = (
   error: Error,
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): void => {
   let statusCode = 500;
   let message = 'Internal Server Error';

@@ -1,5 +1,3 @@
-import { Pool } from 'pg';
-
 // Mock database connection for tests
 jest.mock('../config/database', () => {
   const mockPool = {

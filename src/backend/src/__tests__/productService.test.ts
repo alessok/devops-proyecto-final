@@ -6,11 +6,11 @@ jest.mock('../config/database');
 
 describe('ProductService', () => {
   let productService: ProductService;
-  let mockPool: any;
+  let mockPool: { query: jest.Mock };
 
   beforeAll(() => {
-    const dbModule = require('../config/database');
-    mockPool = dbModule.default;
+    mockPool = { query: jest.fn() };
+    (pool as any).query = mockPool.query;
     productService = new ProductService();
   });
 
@@ -67,7 +67,7 @@ describe('ProductService', () => {
       ];
 
       mockPool.query
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] as Array<{ count: string }> })
         .mockResolvedValueOnce({ rows: mockProducts });
 
       const result = await productService.findAll(1, 10);
@@ -87,7 +87,7 @@ describe('ProductService', () => {
       ];
 
       mockPool.query
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] as Array<{ count: string }> })
         .mockResolvedValueOnce({ rows: mockProducts });
 
       const result = await productService.findAll(1, 10, 'Search');
@@ -111,7 +111,7 @@ describe('ProductService', () => {
       ];
 
       mockPool.query
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ count: '1' }] as Array<{ count: string }> })
         .mockResolvedValueOnce({ rows: mockProducts });
 
       const result = await productService.findAll(1, 10, undefined, 1);

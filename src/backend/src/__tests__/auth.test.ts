@@ -47,7 +47,7 @@ describe('Auth Middleware', () => {
         authorization: 'Bearer valid-token'
       };
 
-      mockJwt.verify.mockReturnValue({ user: mockUser } as any);
+      mockJwt.verify.mockImplementation(() => ({ user: mockUser }));
 
       authenticateToken(mockReq as Request, mockRes as Response, mockNext);
 
@@ -69,7 +69,7 @@ describe('Auth Middleware', () => {
         authorization: 'Bearer valid-token'
       };
 
-      mockJwt.verify.mockReturnValue({ user: mockUser } as any);
+      mockJwt.verify.mockImplementation(() => ({ user: mockUser }));
 
       authenticateToken(mockReq as Request, mockRes as Response, mockNext);
 

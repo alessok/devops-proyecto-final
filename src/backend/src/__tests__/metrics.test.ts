@@ -69,7 +69,6 @@ describe('metricsMiddleware', () => {
 
   it('should observe request duration on finish', () => {
     jest.useFakeTimers();
-    const startTime = Date.now();
     
     metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
     
@@ -106,7 +105,7 @@ describe('metricsMiddleware', () => {
 
   it('should handle different HTTP methods', () => {
     mockReq.method = 'POST';
-    (mockReq as any).route = { path: '/api/users' };
+    (mockReq as Request & { route?: { path: string } }).route = { path: '/api/users' };
     
     metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
 

@@ -1,16 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AppError } from './errorHandler';
-import { User } from '../types';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: Omit<User, 'password'>;
-    }
-  }
-}
+import { AppError } from './errorHandler';
 
 export const authenticateToken = (
   req: Request,

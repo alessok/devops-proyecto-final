@@ -1,4 +1,3 @@
-import Joi from 'joi';
 import {
   createProductSchema,
   updateProductSchema,

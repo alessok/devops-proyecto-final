@@ -5,34 +5,41 @@ jest.mock('prom-client', () => ({
     metrics: jest.fn().mockResolvedValue('mocked metrics')
   })),
   Counter: jest.fn().mockImplementation(() => ({
-    inc: jest.fn()
+    inc: jest.fn(() => undefined)
   })),
   Histogram: jest.fn().mockImplementation(() => ({
-    observe: jest.fn()
+    observe: jest.fn(() => undefined)
   })),
   Gauge: jest.fn().mockImplementation(() => ({
-    set: jest.fn(),
-    inc: jest.fn(),
-    dec: jest.fn()
+    set: jest.fn(() => undefined),
+    inc: jest.fn(() => undefined),
+    dec: jest.fn(() => undefined)
   })),
   collectDefaultMetrics: jest.fn()
 }));
 
-describe('MetricsService', () => {
-  let register: any;
-  let httpRequestsTotal: any;
-  let httpRequestDuration: any;
-  let activeConnections: any;
-  let databaseConnectionPool: any;
-  let businessMetrics: any;
-  let client: any;
+import type { Counter, Histogram, Gauge, Registry } from 'prom-client';
 
-  beforeEach(() => {
+describe('MetricsService', () => {
+  let register: Registry;
+  let httpRequestsTotal: Counter<string>;
+  let httpRequestDuration: Histogram<string>;
+  let activeConnections: Gauge<string>;
+  let databaseConnectionPool: Gauge<string>;
+  let businessMetrics: {
+    totalUsers: Gauge<string>;
+    totalProducts: Gauge<string>;
+    lowStockProducts: Gauge<string>;
+    totalCategories: Gauge<string>;
+  };
+  let client: typeof import('prom-client');
+
+  beforeEach(async () => {
     jest.resetModules();
     jest.clearAllMocks();
     // Importar después de resetModules y mocks
-    client = require('prom-client');
-    const metrics = require('../services/metricsService');
+    client = await import('prom-client');
+    const metrics = await import('../services/metricsService');
     register = metrics.register;
     httpRequestsTotal = metrics.httpRequestsTotal;
     httpRequestDuration = metrics.httpRequestDuration;

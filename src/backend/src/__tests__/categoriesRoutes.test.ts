@@ -1,29 +1,42 @@
 import request from 'supertest';
 import { Express } from 'express';
 import express from 'express';
+import { Request, Response, NextFunction } from 'express';
+import { UserRole } from '../types';
 
 // First, import the router directly to trigger code coverage
 import categoriesRouter from '../routes/categories';
+import { CategoryService } from '../services/categoryService';
 
 // Mock dependencies that would cause issues in tests
 jest.mock('../services/categoryService');
-jest.mock('../middleware/auth', () => ({
-  authenticateToken: (req: any, res: any, next: any) => {
-    req.user = { id: 1, role: 'admin' };
-    next();
-  },
-  authorizeRoles: (...roles: any[]) => (req: any, res: any, next: any) => next()
-}));
+jest.mock('../middleware/auth', () => {
+  type ReqWithUser = Request & { user?: import('../types').User };
+  return {
+    authenticateToken: (req: ReqWithUser, res: Response, next: NextFunction) => {
+      req.user = {
+        id: 1,
+        email: 'admin@example.com',
+        username: 'admin',
+        firstName: 'Admin',
+        lastName: 'User',
+        password: '',
+        role: UserRole.ADMIN,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      next();
+    },
+    authorizeRoles: () => (req: Request, res: Response, next: NextFunction) => next()
+  };
+});
 
 // Mock validation middleware
 jest.mock('../validation/validator', () => ({
-  validate: (schema: any) => (req: any, res: any, next: any) => next(),
-  validateQuery: (schema: any) => (req: any, res: any, next: any) => next()
+  validate: () => (req: Request, res: Response, next: NextFunction) => next(),
+  validateQuery: () => (req: Request, res: Response, next: NextFunction) => next()
 }));
-
-import { CategoryService } from '../services/categoryService';
-
-const MockedCategoryService = CategoryService as jest.MockedClass<typeof CategoryService>;
 
 // Create an Express app for testing
 import { errorHandler } from '../middleware/errorHandler';
@@ -171,23 +184,19 @@ describe('Categories Routes', () => {
 
     it('should handle validation errors', async () => {
       const invalidData = { name: '', description: 'Invalid category' };
-      // Mock de validación: termina la petición con 400 y NO llama a next()
       jest.resetModules();
       jest.doMock('../validation/validator', () => ({
-        validate: () => (req: any, res: any, next: any) => res.status(400).json({ success: false, message: 'Validation error' }),
-        validateQuery: () => (req: any, res: any, next: any) => next()
+        validate: () => (req: Request, res: Response) => res.status(400).json({ success: false, message: 'Validation error' }),
+        validateQuery: () => (req: Request, res: Response, next: NextFunction) => next()
       }));
-      // Reimportar router para que use el nuevo mock
-      const categoriesRouterReloaded = require('../routes/categories').default || require('../routes/categories');
+      const categoriesRouterReloaded = (await import('../routes/categories')).default;
       const appTest = express();
       appTest.use(express.json());
       appTest.use('/api/categories', categoriesRouterReloaded);
       appTest.use(errorHandler);
-
       const response = await request(appTest)
         .post('/api/categories')
         .send(invalidData);
-
       expect(response.status).toBe(400);
       expect(CategoryService.prototype.create).not.toHaveBeenCalled();
     });

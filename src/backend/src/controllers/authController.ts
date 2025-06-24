@@ -46,7 +46,8 @@ export class AuthController {
       );
 
       // Remove password from user object
-      const { password: _, ...userWithoutPassword } = user;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _password, ...userWithoutPassword } = user;
 
       const loginResponse: LoginResponse = {
         token,
