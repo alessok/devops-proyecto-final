@@ -257,13 +257,15 @@ pipeline {
                 }
             }
             steps {
-                echo 'Deploying to staging environment...'
-                // Comandos kubectl corregidos y separados por '&& \'
-                sh '''
-                    kubectl apply -f infrastructure/kubernetes/ --namespace=staging && \\
-                    kubectl rollout status deployment/backend-deployment --namespace=staging && \\
-                    kubectl rollout status deployment/frontend-deployment --namespace=staging
-                '''
+                withKubeconfig([credentialsId: 'kubeconfig-staging']) {
+                    echo 'Deploying to staging environment...'
+                    // Comandos kubectl corregidos y separados por '&& \'
+                    sh '''
+                        kubectl apply -f infrastructure/kubernetes/ --namespace=staging && \\
+                        kubectl rollout status deployment/backend-deployment --namespace=staging && \\
+                        kubectl rollout status deployment/frontend-deployment --namespace=staging
+                    '''
+                }
             }
         }
         
