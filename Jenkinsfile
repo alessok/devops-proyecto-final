@@ -164,37 +164,35 @@ pipeline {
         
         stage('SonarQube Static Analysis') {
             steps {
-                echo "--- INICIANDO DEPURACIÓN DEL WORKSPACE ---"
-        
-                sh 'echo "El directorio actual es:"'
-                sh 'pwd'
-        
-                sh 'echo "Contenido del directorio actual (con permisos):"'
-                sh 'ls -la'
-        
-                sh '''
-                    echo "Buscando el archivo sonar-project.properties..."
-                    if [ -f "sonar-project.properties" ]; then
-                        echo "¡ÉXITO! Se encontró sonar-project.properties. Su contenido es:"
-                        echo "------------------------------------"
-                        cat sonar-project.properties
-                        echo "------------------------------------"
-                    else
-                        echo "¡FALLO! NO se encontró sonar-project.properties en el directorio actual."
-                    fi
-                '''
-        
-                echo "--- FIN DE LA DEPURACIÓN. Intentando ejecutar el scanner... ---"
-
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        docker run --platform linux/amd64 --rm \
-                        -v "$PWD":/usr/src \
-                        -w /usr/src \
-                        --network jenkins-test \
-                        -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
-                        sonarsource/sonar-scanner-cli:5.0
-                    '''
+                    script {
+                        def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
+                
+                        try {
+                            echo "Iniciando contenedor de SonarScanner en segundo plano..."
+                            sh """
+                                docker run -d --name ${scannerContainer} \
+                                --network jenkins-test \
+                                sonarsource/sonar-scanner-cli:5.0 \
+                                sleep 300
+                            """
+
+                            echo "Copiando el código fuente al contenedor..."
+                            sh "docker cp . ${scannerContainer}:/usr/src"
+
+                            echo "Ejecutando el análisis de SonarScanner dentro del contenedor..."
+                            sh """
+                                docker exec \
+                                -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
+                                ${scannerContainer} \
+                                /opt/sonar-scanner/bin/sonar-scanner
+                            """
+
+                        } finally {
+                            echo "Limpiando el contenedor de SonarScanner..."
+                            sh "docker rm -f ${scannerContainer}"
+                        }
+                    }
                 }
             }
         }
