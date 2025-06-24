@@ -160,21 +160,20 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        ls -l /usr/src
-                        ls -l /usr/src/backend
-                        ls -l /usr/src/frontend
+                        ls -l src/backend
+                        ls -l src/frontend
                         docker run --rm \
-                        -v "$PWD":/usr/src/src \
-                        -w /usr/src/src \
+                        -v "$PWD":/usr/src \
+                        -w /usr/src \
                         --network jenkins-test \
                         -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
                         sonarsource/sonar-scanner-cli:latest \
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
                         -Dsonar.organization=alessandro \
-                        -Dsonar.sources=backend/src,frontend/src \
-                        -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info \
-                        -Dsonar.typescript.lcov.reportPaths=backend/coverage/lcov.info \
+                        -Dsonar.sources=src/backend/src,src/frontend/src \
+                        -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
+                        -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
                         -Dsonar.token=${SONARQUBE_TOKEN}
                     '''
