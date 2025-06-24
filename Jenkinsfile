@@ -248,11 +248,19 @@ pipeline {
         }
         
         stage('Deploy to Staging') {
+            // Aquí definimos un agente específico solo para esta etapa
+            agent {
+                docker { 
+                    image 'lachlanevenson/k8s-kubectl:v1.28.2' // Una imagen pública popular que solo contiene kubectl
+                    reuseNode true // Le dice a Jenkins que reutilice el workspace de las etapas anteriores
+                }
+            }
             steps {
                 echo 'Deploying to staging environment...'
+                // Comandos kubectl corregidos y separados por '&& \'
                 sh '''
-                    kubectl apply -f infrastructure/kubernetes/ --namespace=staging
-                    kubectl rollout status deployment/backend-deployment --namespace=staging
+                    kubectl apply -f infrastructure/kubernetes/ --namespace=staging && \\
+                    kubectl rollout status deployment/backend-deployment --namespace=staging && \\
                     kubectl rollout status deployment/frontend-deployment --namespace=staging
                 '''
             }
