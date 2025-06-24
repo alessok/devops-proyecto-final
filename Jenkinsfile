@@ -172,7 +172,8 @@ pipeline {
                         -Dsonar.tests=src/backend/src/__tests__ \
                         -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
-                        -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/**
+                        -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
+                        -Dsonar.token=${SONARQUBE_TOKEN}
                     '''
                 }
             }
