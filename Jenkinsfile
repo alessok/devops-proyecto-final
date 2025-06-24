@@ -162,36 +162,36 @@ pipeline {
             }
         }
         
+        // ETAPA SONARQUBE FINAL Y A PRUEBA DE BALAS
         stage('SonarQube Static Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    script {
-                        def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
+                // No usamos withSonarQubeEnv para eliminar la configuración de la UI de Jenkins como posible punto de fallo.
+                script {
+                    def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
+                    try {
+                        echo "Iniciando contenedor de SonarScanner en segundo plano..."
+                        sh "docker run -d --name ${scannerContainer} --network jenkins-test sonarsource/sonar-scanner-cli:5.0 sleep 300"
+
+                        echo "Copiando el código fuente al contenedor..."
+                        sh "docker cp . ${scannerContainer}:/usr/src"
+
+                        echo "Ejecutando el análisis de SonarScanner apuntando directamente a SonarCloud..."
                 
-                        try {
-                            echo "Iniciando contenedor de SonarScanner en segundo plano..."
+                        // Usamos withCredentials para manejar el token de forma segura y evitar el warning de Jenkins
+                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN_SECURE')]) {
+                            // Paso 3: Ejecutar el scanner DENTRO del contenedor, pasando el HOST y el TOKEN explícitamente.
                             sh """
-                                docker run -d --name ${scannerContainer} \
-                                --network jenkins-test \
-                                sonarsource/sonar-scanner-cli:5.0 \
-                                sleep 300
+                                docker exec \\
+                                -e SONAR_TOKEN=${SONAR_TOKEN_SECURE} \\
+                                ${scannerContainer} \\
+                                /opt/sonar-scanner/bin/sonar-scanner \\
+                                -Dsonar.host.url=https://sonarcloud.io
                             """
-
-                            echo "Copiando el código fuente al contenedor..."
-                            sh "docker cp . ${scannerContainer}:/usr/src"
-
-                            echo "Ejecutando el análisis de SonarScanner dentro del contenedor..."
-                            sh """
-                                docker exec \
-                                -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
-                                ${scannerContainer} \
-                                /opt/sonar-scanner/bin/sonar-scanner
-                            """
-
-                        } finally {
-                            echo "Limpiando el contenedor de SonarScanner..."
-                            sh "docker rm -f ${scannerContainer}"
                         }
+
+                    } finally {
+                        echo "Limpiando el contenedor de SonarScanner..."
+                        sh "docker rm -f ${scannerContainer}"
                     }
                 }
             }
