@@ -160,6 +160,12 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
+                        docker run --rm \
+                        -v "$PWD":/usr/src \
+                        -w /usr/src \
+                        --network jenkins-test \
+                        -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
+                        sonarsource/sonar-scanner-cli:latest \
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
                         -Dsonar.sources=src \
