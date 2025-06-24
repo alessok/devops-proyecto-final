@@ -12,9 +12,9 @@ jest.mock('jsonwebtoken');
 describe('AuthController', () => {
   let authController: AuthController;
   let mockUserService: jest.Mocked<UserService>;
-  let mockRequest: Partial<Request>;
+  let mockRequest: Partial<Request> & { user?: any };
   let mockResponse: Partial<Response>;
-  let mockNext: NextFunction;
+  let mockNext: jest.MockedFunction<NextFunction>;
 
   beforeEach(() => {
     authController = new AuthController();
@@ -93,7 +93,7 @@ describe('AuthController', () => {
       await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('Invalid credentials');
       expect(error.statusCode).toBe(401);
     });
@@ -106,7 +106,7 @@ describe('AuthController', () => {
       await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('Invalid credentials');
       expect(error.statusCode).toBe(401);
     });
@@ -120,7 +120,7 @@ describe('AuthController', () => {
       await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('JWT secret not configured');
       expect(error.statusCode).toBe(500);
     });
@@ -176,7 +176,7 @@ describe('AuthController', () => {
       await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('User with this email already exists');
       expect(error.statusCode).toBe(409);
     });
@@ -189,7 +189,7 @@ describe('AuthController', () => {
       await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('Username already taken');
       expect(error.statusCode).toBe(409);
     });
@@ -241,7 +241,7 @@ describe('AuthController', () => {
       await authController.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('User not authenticated');
       expect(error.statusCode).toBe(401);
     });
@@ -263,7 +263,7 @@ describe('AuthController', () => {
       await authController.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('User not found');
       expect(error.statusCode).toBe(404);
     });
@@ -308,7 +308,7 @@ describe('AuthController', () => {
       await authController.refreshToken(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('User not authenticated');
       expect(error.statusCode).toBe(401);
     });
@@ -320,7 +320,7 @@ describe('AuthController', () => {
       await authController.refreshToken(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
-      const error = (mockNext as jest.Mock).mock.calls[0][0];
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
       expect(error.message).toBe('JWT secret not configured');
       expect(error.statusCode).toBe(500);
     });
