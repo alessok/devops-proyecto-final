@@ -1,4 +1,4 @@
-// Jenkinsfile Final, Consolidado y Corregido (con usuario 'alessok' añadido)
+// Jenkinsfile Final, Consolidado y con todas las etapas originales restauradas.
 pipeline {
     agent any
     
@@ -11,7 +11,7 @@ pipeline {
         
         // Carga de secretos desde el gestor de credenciales de Jenkins
         SONARQUBE_TOKEN         = credentials('sonarqube-token')
-        DOCKER_HUB_CREDENTIALS  = credentials('docker-hub-credentials') // Credencial para usuario y contraseña/token de Docker Hub
+        DOCKER_HUB_CREDENTIALS  = credentials('docker-hub-credentials')
     }
     
     stages {
@@ -190,7 +190,6 @@ pipeline {
                     steps {
                         dir('src/backend') {
                             script {
-                                // CORRECCIÓN: Tu usuario 'alessok' está puesto directamente.
                                 def imageName = "alessok/inventory-backend"
                                 echo "Building Docker image: ${imageName}:${env.BUILD_NUMBER}"
                                 def dockerImage = docker.build(imageName, "--build-arg BUILD_NUMBER=${env.BUILD_NUMBER} .")
@@ -206,7 +205,6 @@ pipeline {
                     steps {
                         dir('src/frontend') {
                             script {
-                                // CORRECCIÓN: Tu usuario 'alessok' está puesto directamente.
                                 def imageName = "alessok/inventory-frontend"
                                 echo "Building Docker image: ${imageName}:${env.BUILD_NUMBER}"
                                 def dockerImage = docker.build(imageName, "--build-arg BUILD_NUMBER=${env.BUILD_NUMBER} .")
@@ -224,7 +222,23 @@ pipeline {
         stage('Deploy to Staging') {
             when { branch 'develop' }
             steps {
-                echo "Deploy to Staging: Not implemented in this example"
+                echo 'Deploying to staging environment...'
+                sh '''
+                    kubectl apply -f infrastructure/kubernetes/ --namespace=staging
+                    kubectl rollout status deployment/backend-deployment --namespace=staging
+                    kubectl rollout status deployment/frontend-deployment --namespace=staging
+                '''
+            }
+        }
+        
+        stage('Integration Tests') {
+            when { branch 'develop' }
+            steps {
+                echo 'Running integration tests...'
+                dir('tests/integration') {
+                    sh 'npm install'
+                    sh 'npm test'
+                }
             }
         }
         
@@ -232,7 +246,30 @@ pipeline {
             when { branch 'main' }
             steps {
                 input message: 'Deploy to production?', ok: 'Deploy'
-                echo "Deploy to Production: Not implemented in this example"
+                echo 'Deploying to production environment...'
+                sh '''
+                    kubectl apply -f infrastructure/kubernetes/ --namespace=production
+                    kubectl rollout status deployment/backend-deployment --namespace=production
+                    kubectl rollout status deployment/frontend-deployment --namespace=production
+                '''
+            }
+        }
+        
+        stage('Performance Tests') {
+            when { branch 'main' }
+            steps {
+                echo 'Running performance tests...'
+                dir('tests/performance') {
+                    sh './run-jmeter-tests.sh'
+                }
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: false,
+                    keepAll: true,
+                    reportDir: 'tests/performance/reports',
+                    reportFiles: 'index.html',
+                    reportName: 'Performance Test Report'
+                ])
             }
         }
     }
