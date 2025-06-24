@@ -213,7 +213,6 @@ pipeline {
         }
         
         stage('Build & Push Docker Images') {
-            when { branch 'main' }
             parallel {
                 stage('Backend Docker Image') {
                     steps {
@@ -249,7 +248,6 @@ pipeline {
         }
         
         stage('Deploy to Staging') {
-            when { branch 'develop' }
             steps {
                 echo 'Deploying to staging environment...'
                 sh '''
@@ -261,7 +259,6 @@ pipeline {
         }
         
         stage('Integration Tests') {
-            when { branch 'develop' }
             steps {
                 echo 'Running integration tests...'
                 dir('tests/integration') {
@@ -272,7 +269,6 @@ pipeline {
         }
         
         stage('Deploy to Production') {
-            when { branch 'main' }
             steps {
                 input message: 'Deploy to production?', ok: 'Deploy'
                 echo 'Deploying to production environment...'
@@ -285,7 +281,6 @@ pipeline {
         }
         
         stage('Performance Tests') {
-            when { branch 'main' }
             steps {
                 echo 'Running performance tests...'
                 dir('tests/performance') {
