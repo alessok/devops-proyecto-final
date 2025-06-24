@@ -251,7 +251,7 @@ pipeline {
             // Aquí definimos un agente específico solo para esta etapa
             agent {
                 docker { 
-                    image 'lachlanevenson/k8s-kubectl:v1.28.2' // Una imagen pública popular que solo contiene kubectl
+                    image 'bitnami/kubectl:1.29' // Una imagen pública popular que solo contiene kubectl
                     reuseNode true // Le dice a Jenkins que reutilice el workspace de las etapas anteriores
                 }
             }
@@ -267,6 +267,13 @@ pipeline {
         }
         
         stage('Integration Tests') {
+            // La condición 'when' se elimina para que se ejecute siempre
+            agent {
+                docker {
+                    image 'node:18-alpine' // Una imagen ligera con Node.js y npm
+                    reuseNode true
+                }
+            }
             steps {
                 echo 'Running integration tests...'
                 dir('tests/integration') {
@@ -277,18 +284,32 @@ pipeline {
         }
         
         stage('Deploy to Production') {
+            // La condición 'when' se elimina para que se ejecute siempre
+            agent {
+                docker {
+                    image 'bitnami/kubectl:1.29'
+                    reuseNode true
+                }
+            }
             steps {
                 input message: 'Deploy to production?', ok: 'Deploy'
                 echo 'Deploying to production environment...'
                 sh '''
-                    kubectl apply -f infrastructure/kubernetes/ --namespace=production
-                    kubectl rollout status deployment/backend-deployment --namespace=production
-                    kubectl rollout status deployment/frontend-deployment --namespace=production
+                    kubectl apply -f infrastructure/kubernetes/ --namespace=production && \\
+                    kubectl rollout status deployment/backend-deployment --namespace=production && \\
+                    kubectl rollout status deployment/frontend-deployment --namespace=production 
                 '''
             }
         }
         
         stage('Performance Tests') {
+            agent {
+                docker {
+                    // Usamos una imagen pública popular que contiene JMeter
+                    image 'justb4/jmeter:latest' 
+                    reuseNode true
+                }
+            }
             steps {
                 echo 'Running performance tests...'
                 dir('tests/performance') {
