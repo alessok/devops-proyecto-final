@@ -252,7 +252,7 @@ pipeline {
             agent {
                 docker { 
                     image 'bitnami/kubectl:1.29' // Una imagen pública popular que solo contiene kubectl
-                    args '-u root --entrypoint=""' 
+                    args '-u root --entrypoint="" --network host' 
                     reuseNode true // Le dice a Jenkins que reutilice el workspace de las etapas anteriores
                 }
             }
@@ -291,7 +291,7 @@ pipeline {
             agent {
                 docker {
                     image 'bitnami/kubectl:1.29'
-                    args '-u root --entrypoint=""' 
+                    args '-u root --entrypoint="" --network host' 
                     reuseNode true
                 }
             }
