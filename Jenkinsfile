@@ -162,28 +162,33 @@ pipeline {
             }
         }
         
+        // VERSIÓN DEFINITIVA, CORRECTA Y ROBUSTA
         stage('SonarQube Static Analysis') {
             steps {
-                // Paso 1: Volvemos a usar withSonarQubeEnv.
-                // Esto asume que ya corregiste la URL en Manage Jenkins -> Configure System.
+                // Mantenemos withSonarQubeEnv para que waitForQualityGate funcione
+                // y para que nos dé las variables SONAR_HOST_URL y SONAR_AUTH_TOKEN.
                 withSonarQubeEnv('SonarQube') {
-            
-                    // Paso 2: Ejecutamos nuestro comando de 'docker cp' y 'docker exec' dentro del wrapper.
-                    // Ya NO necesitamos pasar el host o el token, withSonarQubeEnv se encarga de eso.
                     script {
                         def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
                         try {
                             sh "docker run -d --name ${scannerContainer} --network jenkins-test sonarsource/sonar-scanner-cli:5.0 sleep 300"
                     
                             sh "docker cp . ${scannerContainer}:/usr/src"
-                    
-                            echo "Ejecutando el análisis de SonarScanner con el entorno de Jenkins..."
-                    
-                            // El scanner tomará la URL y el TOKEN de las variables de entorno
-                            // que withSonarQubeEnv prepara automáticamente.
-                            sh "docker exec ${scannerContainer} /opt/sonar-scanner/bin/sonar-scanner"
 
+                            echo "Ejecutando el análisis de SonarScanner pasando el entorno de Jenkins..."
+                    
+                            // La clave es que pasamos explícitamente las variables que prepara 'withSonarQubeEnv'
+                            // al entorno del comando 'docker exec'.
+                            // Jenkins reemplazará ${SONAR_HOST_URL} y ${SONAR_AUTH_TOKEN} con los valores correctos.
+                            sh """
+                                docker exec \\
+                                -e SONAR_HOST_URL=\${SONAR_HOST_URL} \\
+                                -e SONAR_TOKEN=\${SONAR_AUTH_TOKEN} \\
+                                ${scannerContainer} \\
+                                /opt/sonar-scanner/bin/sonar-scanner
+                            """
                         } finally {
+                            echo "Limpiando el contenedor de SonarScanner..."
                             sh "docker rm -f ${scannerContainer}"
                         }
                     }
