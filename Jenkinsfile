@@ -172,9 +172,9 @@ pipeline {
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
                         -Dsonar.organization=alessandro \
-                        -Dsonar.sources=src/backend/src,src/frontend/src \
-                        -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
-                        -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
+                        -Dsonar.sources=backend/src,frontend/src \
+                        -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info \
+                        -Dsonar.typescript.lcov.reportPaths=backend/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
                         -Dsonar.token=${SONARQUBE_TOKEN}
                     '''
