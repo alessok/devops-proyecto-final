@@ -164,6 +164,28 @@ pipeline {
         
         stage('SonarQube Static Analysis') {
             steps {
+                echo "--- INICIANDO DEPURACIÓN DEL WORKSPACE ---"
+        
+                sh 'echo "El directorio actual es:"'
+                sh 'pwd'
+        
+                sh 'echo "Contenido del directorio actual (con permisos):"'
+                sh 'ls -la'
+        
+                sh '''
+                    echo "Buscando el archivo sonar-project.properties..."
+                    if [ -f "sonar-project.properties" ]; then
+                        echo "¡ÉXITO! Se encontró sonar-project.properties. Su contenido es:"
+                        echo "------------------------------------"
+                        cat sonar-project.properties
+                        echo "------------------------------------"
+                    else
+                        echo "¡FALLO! NO se encontró sonar-project.properties en el directorio actual."
+                    fi
+                '''
+        
+                echo "--- FIN DE LA DEPURACIÓN. Intentando ejecutar el scanner... ---"
+
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         docker run --platform linux/amd64 --rm \
