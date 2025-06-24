@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: inventory-backend:latest
+        image: alessok/inventory-backend:latest
         env:
         - name: NODE_ENV
           value: "production"
