@@ -13,6 +13,15 @@ pipeline {
     }
     
     stages {
+        
+        // --- AÑADE ESTA NUEVA ETAPA ---
+        stage('Cleanup Workspace') {
+            steps {
+                echo 'Cleaning up the workspace before checkout...'
+                cleanWs() // Este comando borra el workspace
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo 'Checking out code...'
