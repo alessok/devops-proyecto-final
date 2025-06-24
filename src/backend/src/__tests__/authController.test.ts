@@ -253,7 +253,6 @@ describe('AuthController', () => {
         username: 'testuser',
         firstName: 'Test',
         lastName: 'User',
-        password: '',
         role: UserRole.EMPLOYEE,
         isActive: true,
         createdAt: new Date(),

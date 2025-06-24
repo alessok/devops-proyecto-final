@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { AppError, errorHandler } from '../middleware/errorHandler';
 
 describe('Error Handler Middleware', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
-  let mockNext: NextFunction;
   let mockJson: jest.Mock;
   let mockStatus: jest.Mock;
   
@@ -24,8 +23,6 @@ describe('Error Handler Middleware', () => {
       status: mockStatus,
       json: mockJson
     };
-    
-    mockNext = jest.fn();
     
     // Mock console.error to suppress output during tests
     consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -59,7 +56,7 @@ describe('Error Handler Middleware', () => {
     it('should handle AppError correctly', () => {
       const error = new AppError('Custom error message', 404);
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(404);
       expect(mockJson).toHaveBeenCalledWith({
@@ -74,7 +71,7 @@ describe('Error Handler Middleware', () => {
       const error = new Error('Validation failed');
       error.name = 'ValidationError';
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -89,7 +86,7 @@ describe('Error Handler Middleware', () => {
       const error = new Error('Invalid token');
       error.name = 'JsonWebTokenError';
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith({
@@ -104,7 +101,7 @@ describe('Error Handler Middleware', () => {
       const error = new Error('Token expired');
       error.name = 'TokenExpiredError';
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(401);
       expect(mockJson).toHaveBeenCalledWith({
@@ -118,7 +115,7 @@ describe('Error Handler Middleware', () => {
     it('should handle generic errors with 500 status', () => {
       const error = new Error('Unexpected error');
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
@@ -134,7 +131,7 @@ describe('Error Handler Middleware', () => {
       
       const error = new Error('Sensitive error details');
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
@@ -150,7 +147,7 @@ describe('Error Handler Middleware', () => {
       
       const error = new Error('Development error details');
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
@@ -164,7 +161,7 @@ describe('Error Handler Middleware', () => {
     it('should log error information', () => {
       const error = new Error('Test error for logging');
       
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(consoleSpy).toHaveBeenCalledWith('Error:', {
         message: 'Test error for logging',
@@ -178,7 +175,7 @@ describe('Error Handler Middleware', () => {
     it('should include valid timestamp in response', () => {
       const error = new AppError('Test error', 400);
       
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       const response = mockJson.mock.calls[0][0];
       const timestamp = new Date(response.timestamp);
@@ -190,7 +187,7 @@ describe('Error Handler Middleware', () => {
     it('should handle errors without message', () => {
       const error = new Error();
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as Request, mockRes as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({
