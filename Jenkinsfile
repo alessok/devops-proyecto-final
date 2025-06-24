@@ -257,7 +257,7 @@ pipeline {
                 }
             }
             steps {
-                withKubeconfig([credentialsId: 'kubeconfig-staging']) {
+                withKubeConfig([credentialsId: 'kubeconfig-staging']) {
                     echo 'Deploying to staging environment...'
                     // Comandos kubectl corregidos y separados por '&& \'
                     sh '''
@@ -268,7 +268,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Integration Tests') {
             // La condición 'when' se elimina para que se ejecute siempre
             agent {
