@@ -166,12 +166,13 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
+                        // CORRECCIÓN: Usando una etiqueta de imagen que sí existe.
                         docker run --platform linux/amd64 --rm \
                         -v "$PWD":/usr/src \
                         -w /usr/src \
                         --network jenkins-test \
                         -e SONAR_TOKEN=${SONARQUBE_TOKEN} \
-                        sonarsource/sonar-scanner-cli:5.0.1.3006
+                        sonarsource/sonar-scanner-cli:5.0
                     '''
                 }
             }
