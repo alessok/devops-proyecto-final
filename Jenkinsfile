@@ -171,7 +171,7 @@ pipeline {
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
                         -Dsonar.organization=alessandro \
-                        -Dsonar.sources=src/backend/src,src/frontend/src \
+                        -Dsonar.sources=src \
                         -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
