@@ -160,8 +160,6 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        ls -l src/backend
-                        ls -l src/frontend
                         docker run --rm \
                         -v "$PWD":/usr/src \
                         -w /usr/src \
@@ -171,7 +169,7 @@ pipeline {
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
                         -Dsonar.organization=alessandro \
-                        -Dsonar.sources=src \
+                        -Dsonar.sources=src/backend,src/frontend \
                         -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.typescript.lcov.reportPaths=src/backend/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/node_modules/** \
