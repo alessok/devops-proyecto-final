@@ -166,7 +166,6 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        // CORRECCIÓN: Usando una etiqueta de imagen que sí existe.
                         docker run --platform linux/amd64 --rm \
                         -v "$PWD":/usr/src \
                         -w /usr/src \
