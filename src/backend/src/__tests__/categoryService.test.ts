@@ -6,11 +6,12 @@ jest.mock('../config/database');
 
 describe('CategoryService', () => {
   let categoryService: CategoryService;
-  let mockPool: any;
+  let mockPool: { query: jest.Mock };
 
   beforeAll(() => {
+    mockPool = { query: jest.fn() };
+    (pool as unknown as { query: jest.Mock }).query = mockPool.query;
     categoryService = new CategoryService();
-    mockPool = pool;
   });
 
   beforeEach(() => {
