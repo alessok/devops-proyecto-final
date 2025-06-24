@@ -1,6 +1,9 @@
 // Jenkinsfile Final, Consolidado y con todas las etapas originales restauradas.
 pipeline {
     agent any
+    tools {
+        nodejs 'node18'
+    }
     
     environment {
         // Variables de entorno para el pipeline
