@@ -168,6 +168,7 @@ pipeline {
                         sonarsource/sonar-scanner-cli:latest \
                         sonar-scanner \
                         -Dsonar.projectKey=inventory-management \
+                        -Dsonar.organization=alessandro \
                         -Dsonar.sources=src \
                         -Dsonar.tests=src/backend/src/__tests__ \
                         -Dsonar.javascript.lcov.reportPaths=src/backend/coverage/lcov.info \
