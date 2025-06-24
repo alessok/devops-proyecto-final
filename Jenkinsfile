@@ -187,6 +187,13 @@ pipeline {
                                 ${scannerContainer} \\
                                 /opt/sonar-scanner/bin/sonar-scanner
                             """
+
+                            // ---- PASO CLAVE Y FINAL ----
+                            // Copiamos el directorio de resultados (.scannerwork) de vuelta al workspace de Jenkins.
+                            // El punto final "." significa "al directorio actual".
+                            echo "Copiando los resultados del análisis desde el contenedor..."
+                            sh "docker cp ${scannerContainer}:/usr/src/.scannerwork ."
+
                         } finally {
                             echo "Limpiando el contenedor de SonarScanner..."
                             sh "docker rm -f ${scannerContainer}"
