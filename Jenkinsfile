@@ -161,8 +161,8 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         ls -l /usr/src
-                        ls -l /usr/src/src
-                        ls -l /usr/src/src/backend
+                        ls -l /usr/src/backend
+                        ls -l /usr/src/frontend
                         docker run --rm \
                         -v "$PWD":/usr/src \
                         -w /usr/src \
