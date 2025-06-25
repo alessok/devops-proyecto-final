@@ -10,8 +10,10 @@
     "report": "artillery report"
   },
   "dependencies": {
-    "artillery": "^2.0.0",
-    "lighthouse": "^10.4.0",
     "clinic": "^12.1.0"
+  },
+  "devDependencies": {
+    "artillery": "^2.0.21",
+    "lighthouse": "^12.6.1"
   }
 }

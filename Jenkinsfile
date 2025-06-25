@@ -317,24 +317,61 @@ pipeline {
         stage('Performance Tests') {
             agent {
                 docker {
-                    // Usamos una imagen pública popular que contiene JMeter
-                    image 'justb4/jmeter:latest' 
+                    // Usamos una imagen de Node.js como base, que nos da npm
+                    image 'cypress/browsers:node18.12.1-chrome107-ff107'
+                    // La clave es '--network host', que permite que localhost funcione como en tu máquina
+                    args '-u root --entrypoint="" --network host'
                     reuseNode true
                 }
             }
             steps {
-                echo 'Running performance tests...'
                 dir('tests/performance') {
-                    sh './run-jmeter-tests.sh'
+                    echo 'Preparing environment and running performance tests...'
+                    sh '''
+                        # Hacemos que el script falle si cualquier comando falla
+                        set -e
+                        
+                        # --- PASO 1: INSTALACIÓN DE DEPENDENCIAS ---
+                        # Alpine Linux (la base de node:18-alpine) usa 'apk' como gestor de paquetes
+                        echo "Installing required system tools (curl, apache-bench)..."
+                        apk add --no-cache curl apache2-utils
+                        
+                        echo "Installing Node.js test tools (artillery, lighthouse)..."
+                        # Usamos el package.json que ya tienes en esta carpeta
+                        npm install 
+                        
+                        # --- PASO 2: EJECUCIÓN DE TU SCRIPT ---
+                        echo "Running performance tests against localhost (forwarded by Docker Desktop)..."
+                        # Nos aseguramos de que el script tenga permisos de ejecución
+                        chmod +x ./run-performance-tests.sh
+                        # Ejecutamos tu script sin cambios
+                        ./run-performance-tests.sh
+                    '''
                 }
-                publishHTML([
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: false,
-                    keepAll: true,
-                    reportDir: 'tests/performance/reports',
-                    reportFiles: 'index.html',
-                    reportName: 'Performance Test Report'
-                ])
+                
+                // --- PASO 3: PUBLICACIÓN DINÁMICA DEL REPORTE ---
+                script {
+                    echo "Finding the latest performance test results directory..."
+                    
+                    // Encontramos la carpeta más nueva que tu script creó dentro de 'results'
+                    def latestReportDir = sh(returnStdout: true, script: 'ls -td tests/performance/results/*/ | head -n 1').trim()
+                    
+                    if (latestReportDir) {
+                        echo "HTML Report found in: ${latestReportDir}"
+                        
+                        // Usamos la ruta dinámica y el nombre de archivo correcto
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: latestReportDir, 
+                            reportFiles: 'performance_report.html', 
+                            reportName: 'Performance Test Report'
+                        ])
+                    } else {
+                        echo "Warning: No performance test result directory was found."
+                    }
+                }
             }
         }
     }

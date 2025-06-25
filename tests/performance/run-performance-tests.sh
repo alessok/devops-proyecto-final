@@ -65,15 +65,15 @@ run_ab_tests() {
 run_artillery_tests() {
     echo -e "${YELLOW}🎯 Ejecutando pruebas con Artillery...${NC}"
     
-    if command -v artillery &> /dev/null; then
+    if npx --no-install artillery --version &> /dev/null; then
         # Prueba de carga normal
         echo "📈 Ejecutando prueba de carga..."
-        artillery run load-test.yml --output "$RESULTS_DIR/artillery-load.json"
-        artillery report "$RESULTS_DIR/artillery-load.json" --output "$RESULTS_DIR/artillery-load-report.html"
+        npx artillery run load-test.yml --output "$RESULTS_DIR/artillery-load.json"
+        npx artillery report "$RESULTS_DIR/artillery-load.json" --output "$RESULTS_DIR/artillery-load-report.html"
         
         # Prueba rápida de stress
         echo "⚡ Ejecutando prueba de stress rápida..."
-        artillery quick --count 50 --num 20 --output "$RESULTS_DIR/artillery-quick.json" "$BACKEND_URL/health"
+        npx artillery quick --count 50 --num 20 --output "$RESULTS_DIR/artillery-quick.json" "$BACKEND_URL/health"
         
         echo -e "${GREEN}✅ Pruebas Artillery completadas${NC}"
     else
@@ -85,19 +85,19 @@ run_artillery_tests() {
 run_lighthouse_analysis() {
     echo -e "${YELLOW}💡 Ejecutando análisis con Lighthouse...${NC}"
     
-    if command -v lighthouse &> /dev/null; then
-        lighthouse "$FRONTEND_URL" \
+    if npx --no-install lighthouse --version &> /dev/null; then
+        npx lighthouse "$FRONTEND_URL" \
             --output html \
             --output-path "$RESULTS_DIR/lighthouse-report.html" \
             --chrome-flags="--headless --no-sandbox" \
-            --quiet
+            --no-enable-error-reporting
         
         # Extraer métricas principales
-        lighthouse "$FRONTEND_URL" \
+        npx lighthouse "$FRONTEND_URL" \
             --output json \
             --output-path "$RESULTS_DIR/lighthouse-metrics.json" \
             --chrome-flags="--headless --no-sandbox" \
-            --quiet
+            --no-enable-error-reporting
         
         echo -e "${GREEN}✅ Análisis Lighthouse completado${NC}"
     else
