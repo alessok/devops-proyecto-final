@@ -36,6 +36,7 @@ class ApiService {
       (config) => {
         const token = localStorage.getItem('token');
         if (token) {
+          config.headers = config.headers || {};
           config.headers.Authorization = `Bearer ${token}`;
         }
         console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
