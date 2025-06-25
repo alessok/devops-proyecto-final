@@ -296,7 +296,7 @@ pipeline {
                 }
             }
             steps {
-                input message: 'Deploy to production?', ok: 'Deploy'
+                // input message: 'Deploy to production?', ok: 'Deploy'
                 echo 'Deploying to production environment...'
                 sh '''
                     kubectl apply -f infrastructure/kubernetes/ --namespace=production && \\
