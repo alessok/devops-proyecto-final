@@ -287,22 +287,30 @@ pipeline {
         }
         
         stage('Deploy to Production') {
-            // La condición 'when' se elimina para que se ejecute siempre
             agent {
-                docker {
+                docker { 
                     image 'bitnami/kubectl:1.29'
-                    args '-u root --entrypoint="" --network host' 
+                    args '-u root --entrypoint="" --network host'
                     reuseNode true
                 }
             }
             steps {
-                // input message: 'Deploy to production?', ok: 'Deploy'
-                echo 'Deploying to production environment...'
-                sh '''
-                    kubectl apply -f infrastructure/kubernetes/ --namespace=production && \\
-                    kubectl rollout status deployment/backend-deployment --namespace=production && \\
-                    kubectl rollout status deployment/frontend-deployment --namespace=production 
-                '''
+                // Para un despliegue real a producción, aquí usarías una credencial
+                // diferente, ej. 'kubeconfig-production'
+                withKubeConfig([credentialsId: 'kubeconfig-staging']) {
+                    echo 'Deploying to PRODUCTION environment...'
+                    sh '''
+                        # ---- LA SOLUCIÓN ESTÁ AQUÍ ----
+                        # Forzamos a kubectl a que apunte al servidor correcto de K8s,
+                        # ignorando cualquier configuración por defecto o variable de entorno conflictiva.
+
+                        K8S_SERVER="https://localhost:6443"
+
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/ --namespace=production && \\
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/backend-deployment --namespace=production && \\
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/frontend-deployment --namespace=production
+                    '''
+                }
             }
         }
         
