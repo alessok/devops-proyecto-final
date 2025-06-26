@@ -317,49 +317,48 @@ pipeline {
         stage('Performance Tests') {
             agent {
                 docker {
-                    // Usamos una imagen de Node.js como base, que nos da npm
-                    image 'cypress/browsers:node-18.20.3-chrome-120.0.6099.109-ff-120.0.1-edge-120.0.1587.56-1'
-                    // La clave es '--network host', que permite que localhost funcione como en tu máquina
-                    args '-u root --entrypoint="" --network host'
+                    // Usamos una imagen oficial de Node con Debian (Bullseye), que es muy estable y compatible.
+                    image 'node:18-bullseye'
+                    // Mantenemos los argumentos que sabemos que funcionan
+                    args '-u root --entrypoint="" --network host' 
                     reuseNode true
                 }
             }
             steps {
                 dir('tests/performance') {
-                    echo 'Preparing environment and running performance tests...'
-                    sh '''
-                        # Hacemos que el script falle si cualquier comando falla
-                        set -e
-                        
-                        # --- PASO 1: INSTALACIÓN DE DEPENDENCIAS ---
-                        # Alpine Linux (la base de node:18-alpine) usa 'apk' como gestor de paquetes
-                        echo "Installing required system tools (curl, apache-bench)..."
-                        apk add --no-cache curl apache2-utils
-                        
-                        echo "Installing Node.js test tools (artillery, lighthouse)..."
-                        # Usamos el package.json que ya tienes en esta carpeta
+                    echo 'Preparing a full performance test environment from scratch...'
+                    sh(script: '''
+                        set -ex  # Este comando hace que el script falle en cualquier error y muestre los comandos
+
+                        echo "--- Paso 1: Actualizando lista de paquetes ---"
+                        apt-get update
+
+                        echo "--- Paso 2: Instalando dependencias del sistema (curl, ab) ---"
+                        apt-get install -y curl apache2-utils wget gnupg ca-certificates
+
+                        echo "--- Paso 3: Instalando Google Chrome para que Lighthouse funcione ---"
+                        # Añadimos el repositorio oficial de Google
+                        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg
+                        echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+                        apt-get update
+                        # Instalamos Google Chrome estable
+                        apt-get install -y google-chrome-stable
+
+                        echo "--- Paso 4: Instalando herramientas de prueba de Node.js ---"
+                        # Usamos tu package.json
                         npm install 
-                        
-                        # --- PASO 2: EJECUCIÓN DE TU SCRIPT ---
-                        echo "Running performance tests against localhost (forwarded by Docker Desktop)..."
-                        # Nos aseguramos de que el script tenga permisos de ejecución
+
+                        echo "--- Paso 5: Ejecutando tu script de pruebas de rendimiento ---"
                         chmod +x ./run-performance-tests.sh
-                        # Ejecutamos tu script sin cambios
                         ./run-performance-tests.sh
-                    '''
+                    ''')
                 }
                 
-                // --- PASO 3: PUBLICACIÓN DINÁMICA DEL REPORTE ---
+                // La lógica para publicar el reporte se mantiene exactamente igual
                 script {
-                    echo "Finding the latest performance test results directory..."
-                    
-                    // Encontramos la carpeta más nueva que tu script creó dentro de 'results'
+                    echo "Finding and publishing the HTML report..."
                     def latestReportDir = sh(returnStdout: true, script: 'ls -td tests/performance/results/*/ | head -n 1').trim()
-                    
                     if (latestReportDir) {
-                        echo "HTML Report found in: ${latestReportDir}"
-                        
-                        // Usamos la ruta dinámica y el nombre de archivo correcto
                         publishHTML([
                             allowMissing: false,
                             alwaysLinkToLastBuild: true,
