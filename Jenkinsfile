@@ -318,7 +318,7 @@ pipeline {
             agent {
                 docker {
                     // Usamos una imagen de Node.js como base, que nos da npm
-                    image 'cypress/browsers:node18.17.1-chrome118-ff118'
+                    image 'cypress/browsers:node-18.20.3-chrome-120.0.6099.109-ff-120.0.1-edge-120.0.1587.56-1'
                     // La clave es '--network host', que permite que localhost funcione como en tu máquina
                     args '-u root --entrypoint="" --network host'
                     reuseNode true
