@@ -326,29 +326,21 @@ pipeline {
             }
             steps {
                 dir('tests/performance') {
-                    echo 'Preparing a full performance test environment from scratch...'
+                    echo 'Preparing environment and running performance tests...'
                     sh(script: '''
-                        set -ex  # Este comando hace que el script falle en cualquier error y muestre los comandos
+                        set -ex  # Hacemos que el script falle en cualquier error y muestre los comandos
 
                         echo "--- Paso 1: Actualizando lista de paquetes ---"
                         apt-get update
 
-                        echo "--- Paso 2: Instalando dependencias del sistema (curl, ab) ---"
-                        apt-get install -y curl apache2-utils wget gnupg ca-certificates
+                        # --- CORRECCIÓN: Instalamos todo en un solo paso y usamos 'chromium' ---
+                        echo "--- Paso 2: Instalando dependencias del sistema (curl, ab y chromium) ---"
+                        apt-get install -y curl apache2-utils chromium
 
-                        echo "--- Paso 3: Instalando Google Chrome para que Lighthouse funcione ---"
-                        # Añadimos el repositorio oficial de Google
-                        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg
-                        echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-                        apt-get update
-                        # Instalamos Google Chrome estable
-                        apt-get install -y google-chrome-stable
-
-                        echo "--- Paso 4: Instalando herramientas de prueba de Node.js ---"
-                        # Usamos tu package.json
+                        echo "--- Paso 3: Instalando herramientas de prueba de Node.js ---"
                         npm install 
 
-                        echo "--- Paso 5: Ejecutando tu script de pruebas de rendimiento ---"
+                        echo "--- Paso 4: Ejecutando el script de pruebas de rendimiento ---"
                         chmod +x ./run-performance-tests.sh
                         ./run-performance-tests.sh
                     ''')
