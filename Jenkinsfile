@@ -15,6 +15,7 @@ pipeline {
         // Carga de secretos desde el gestor de credenciales de Jenkins
         SONARQUBE_TOKEN         = credentials('sonarqube-token')
         DOCKER_HUB_CREDENTIALS  = credentials('docker-hub-credentials')
+        ARTILLERY_TOKEN = credentials('artillery-token')
     }
     
     stages {

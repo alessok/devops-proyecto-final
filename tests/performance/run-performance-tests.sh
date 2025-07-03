@@ -64,16 +64,18 @@ run_ab_tests() {
 # Función para pruebas con Artillery
 run_artillery_tests() {
     echo -e "${YELLOW}🎯 Ejecutando pruebas con Artillery...${NC}"
+
+    # Verificamos si la variable de entorno con el token existe
+    if [ -z "$ARTILLERY_IO_TOKEN" ]; then
+        echo -e "${RED}❌ El token de Artillery no está configurado. Saltando publicación.${NC}"
+        return
+    fi
     
     if npx --no-install artillery --version &> /dev/null; then
         # Prueba de carga normal
         echo "📈 Ejecutando prueba de carga..."
-        npx artillery run load-test.yml --output "$RESULTS_DIR/artillery-load.json"
-        npx artillery report "$RESULTS_DIR/artillery-load.json" --output "$RESULTS_DIR/artillery-load-report.html"
-        
-        # Prueba rápida de stress
-        echo "⚡ Ejecutando prueba de stress rápida..."
-        npx artillery quick --count 50 --num 20 --output "$RESULTS_DIR/artillery-quick.json" "$BACKEND_URL/health"
+        # El comando 'publish' reemplaza a 'run' y 'report'.
+        npx artillery publish load-test.yml
         
         echo -e "${GREEN}✅ Pruebas Artillery completadas${NC}"
     else
