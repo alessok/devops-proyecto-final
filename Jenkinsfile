@@ -104,12 +104,13 @@ pipeline {
                     
                     echo 'Starting PostgreSQL container for testing...'
                     sh '''
-                        docker run -d --name test-postgres \
-                        --network jenkins-test \
-                        -e POSTGRES_DB=${POSTGRES_DB} \
-                        -e POSTGRES_USER=${POSTGRES_USER} \
-                        -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \
-                        postgres:15-alpine
+                        docker run -d --name test-postgres \\
+                        --network jenkins-test \\
+                        -e POSTGRES_DB=${POSTGRES_DB} \\
+                        -e POSTGRES_USER=${POSTGRES_USER} \\
+                        -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \\
+                        -p 55432:5432 \\
+                        postgres:15-alpine -c 'listen_addresses=*'
                     '''
                     
                     echo 'Waiting for PostgreSQL to be ready...'
