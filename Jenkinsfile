@@ -125,8 +125,8 @@ pipeline {
                     
                     echo 'Running database migrations...'
                     sh '''
-                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
-                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
+                        docker exec -i test-postgres psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
+                        docker exec -i test-postgres psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
                     '''
                 }
                 
