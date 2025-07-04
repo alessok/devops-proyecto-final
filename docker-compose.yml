@@ -62,9 +62,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./src/backend:/app
-      - /app/node_modules
     networks:
       - inventory-network
     healthcheck:
