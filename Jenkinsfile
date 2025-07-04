@@ -132,13 +132,15 @@ pipeline {
                     echo 'Waiting for PostgreSQL to be ready...'
                     // Este bucle de espera es más robusto
                     sh '''
-                        for i in {1..20}; do
-                        if docker exec test-postgres pg_isready -U ${POSTGRES_USER} -q; then
-                            echo "PostgreSQL is ready!"
-                            exit 0
-                        fi
-                        echo "Waiting for PostgreSQL... attempt $i"
-                        sleep 2
+                        i=0
+                        while [ $i -lt 20 ]; do
+                            i=$((i + 1))
+                            if docker exec test-postgres pg_isready -U ${POSTGRES_USER} -q; then
+                                echo "PostgreSQL is ready!"
+                                exit 0
+                            fi
+                            echo "Waiting for PostgreSQL... attempt $i"
+                            sleep 2
                         done
                         echo "PostgreSQL failed to start in time."
                         exit 1
