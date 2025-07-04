@@ -97,43 +97,67 @@ pipeline {
         }
         
         stage('Unit & Integration Tests') {
+            agent {
+                // Usamos un agente temporal de Docker. Esto evita los problemas de permisos del host.
+                docker {
+                    image 'docker:26.1.4' // Usamos una imagen oficial de Docker con Alpine
+                    // Montamos el socket de Docker y conectamos este agente a la red principal del proyecto
+                    args '-v /var/run/docker.sock:/var/run/docker.sock --network=devops-proyecto-final_inventory-network'
+                }
+
+                
+            }
             steps {
                 script {
-                    sh 'docker network inspect jenkins-test >/dev/null 2>&1 || docker network create jenkins-test'
+                    // --- Preparación del Entorno ---
+                    // El contenedor 'docker' no tiene Node.js, así que lo instalamos.
+                    echo 'Installing Node.js and npm...'
+                    sh 'apk add --update nodejs npm'
+
+                    // --- Limpieza y Creación de la Base de Datos de Prueba ---
                     sh 'docker rm -f test-postgres || true'
                     
                     echo 'Starting PostgreSQL container for testing...'
+                    // Lanzamos la BD de prueba en la misma red que todo lo demás
                     sh '''
                         docker run -d --name test-postgres \\
-                        --network jenkins-test \\
+                        --network=devops-proyecto-final_inventory-network \\
                         -e POSTGRES_DB=${POSTGRES_DB} \\
                         -e POSTGRES_USER=${POSTGRES_USER} \\
                         -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} \\
-                        -p 55432:5432 \\
-                        postgres:15-alpine -c 'listen_addresses=*'
+                        postgres:15-alpine
                     '''
                     
                     echo 'Waiting for PostgreSQL to be ready...'
+                    // Este bucle de espera es más robusto
                     sh '''
-                        for i in {1..15}; do
-                          if docker exec test-postgres pg_isready -U ${POSTGRES_USER}; then
+                        for i in {1..20}; do
+                        if docker exec test-postgres pg_isready -U ${POSTGRES_USER} -q; then
                             echo "PostgreSQL is ready!"
-                            break
-                          fi
-                          echo "Waiting for PostgreSQL... attempt $i"
-                          sleep 2
+                            exit 0
+                        fi
+                        echo "Waiting for PostgreSQL... attempt $i"
+                        sleep 2
                         done
+                        echo "PostgreSQL failed to start in time."
+                        exit 1
                     '''
                     
                     echo 'Running database migrations...'
+                    // El workspace se monta automáticamente, por lo que Jenkins encuentra los archivos.
                     sh '''
-                        docker exec -i test-postgres psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
-                        docker exec -i test-postgres psql -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
+                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
+                        docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
                     '''
                 }
                 
+                // --- Ejecución de las Pruebas ---
                 dir('src/backend') {
+                    echo 'Installing backend dependencies...'
+                    sh 'npm install'
+
                     echo 'Running backend tests and generating coverage report...'
+                    // Todas las variables de entorno se definen para el comando de prueba
                     sh '''
                         export NODE_ENV=test
                         export DB_HOST=test-postgres
@@ -147,6 +171,7 @@ pipeline {
                 }
             }
             post {
+                // El bloque 'post' también se ejecuta dentro del agente de Docker
                 always {
                     echo 'Cleaning up test database container...'
                     sh 'docker rm -f test-postgres || true'
