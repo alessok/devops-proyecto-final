@@ -135,18 +135,15 @@ pipeline {
     post {
         // Bloque final que se ejecuta después de todas las etapas
         always {
-            // Asignamos un agente a esta sección para que sepa dónde trabajar
-            agent any
-            
-            steps {
+            node {
                 echo "Pipeline finished. Publishing reports..."
                 publishHTML(
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'src/backend/coverage/lcov-report',
-                    reportFiles: 'index.html',
-                    reportName: 'Backend Coverage'
+                        keepAll: true,
+                        reportDir: 'src/backend/coverage/lcov-report',
+                        reportFiles: 'index.html',
+                        reportName: 'Backend Coverage'
                 )
             }
         }
