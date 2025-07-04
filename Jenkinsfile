@@ -135,7 +135,7 @@ pipeline {
     post {
         // Bloque final que se ejecuta después de todas las etapas
         always {
-            node {
+            node('') {
                 echo "Pipeline finished. Publishing reports..."
                 publishHTML(
                     allowMissing: true,
