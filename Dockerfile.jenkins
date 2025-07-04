@@ -1,0 +1,61 @@
+FROM jenkins/jenkins:lts
+
+# Cambiar a usuario root para instalar dependencias
+USER root
+
+# Instalar Docker CLI
+RUN apt-get update && \
+    apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Instalar Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear grupo docker y agregar usuario jenkins
+RUN groupadd -f docker && \
+    usermod -aG docker jenkins
+
+# Volver al usuario jenkins
+USER jenkins
+
+# Copiar script de configuración de Jenkins
+COPY init-jenkins-config.groovy /usr/share/jenkins/ref/init.groovy.d/
+
+# Instalar plugins necesarios
+RUN jenkins-plugin-cli --plugins \
+    blueocean \
+    docker-workflow \
+    nodejs \
+    sonar \
+    htmlpublisher \
+    jacoco \
+    pipeline-stage-view \
+    build-timeout \
+    credentials-binding \
+    timestamper \
+    ws-cleanup \
+    ant \
+    gradle \
+    workflow-aggregator \
+    github-branch-source \
+    pipeline-github-lib \
+    pipeline-stage-view \
+    git \
+    ssh-slaves \
+    matrix-auth \
+    pam-auth \
+    ldap \
+    email-ext \
+    mailer
