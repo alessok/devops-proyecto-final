@@ -1,4 +1,23 @@
 services:
+  # Jenkins para CI/CD
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      # Usamos un volumen nombrado para persistir los datos de Jenkins
+      # y evitamos problemas de permisos con archivos locales.
+      - jenkins_data:/var/jenkins_home
+      # Montamos el socket de Docker para que Jenkins pueda ejecutar comandos de Docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - inventory-network
+    # Hacemos que Jenkins inicie después de la base de datos
+    depends_on:
+      - postgres
+      
   # Base de datos PostgreSQL
   postgres:
     image: postgres:15-alpine
