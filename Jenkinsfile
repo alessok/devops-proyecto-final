@@ -136,18 +136,14 @@ pipeline {
         // Bloque final que se ejecuta después de todas las etapas
         always {
             echo "Pipeline finished. Publishing reports..."
-            // Usamos 'node' para asegurar que el workspace esté disponible
-            agent any
-            steps {
-                 publishHTML(
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'src/backend/coverage/lcov-report',
-                    reportFiles: 'index.html',
-                    reportName: 'Backend Coverage'
-                )
-            }
+            publishHTML(
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'src/backend/coverage/lcov-report',
+                reportFiles: 'index.html',
+                reportName: 'Backend Coverage'
+            )
         }
     }
 }
