@@ -98,5 +98,8 @@ k8s-secrets.yml
 *.tfstate.backup
 .terraform/
 
+# Jenkins backup files
+jenkins_backup/
+
 # Local configuration
 config/local.json
