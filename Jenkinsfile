@@ -173,7 +173,7 @@ pipeline {
                     script {
                         def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
                         try {
-                            sh "docker run -d --name ${scannerContainer} --network inventory-network sonarsource/sonar-scanner-cli:5.0 sleep 300"
+                            sh "docker run -d --name ${scannerContainer} --network devops-proyecto-final_inventory-network sonarsource/sonar-scanner-cli:5.0 sleep 300"
                     
                             sh "docker cp . ${scannerContainer}:/usr/src"
 
