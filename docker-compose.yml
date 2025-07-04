@@ -9,6 +9,7 @@ services:
       - "8080:8080"
       - "50000:50000"
     privileged: true
+    user: root
     volumes:
       # Usamos un volumen nombrado para persistir los datos de Jenkins
       # y evitamos problemas de permisos con archivos locales.
