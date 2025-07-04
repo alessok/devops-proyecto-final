@@ -1,4 +1,3 @@
-#!/usr/bin/env powershell
 # Script para verificar que todos los servicios estén funcionando
 
 Write-Host "===== Verificando servicios DevOps =====" -ForegroundColor Green
