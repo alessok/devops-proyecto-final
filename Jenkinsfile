@@ -278,8 +278,8 @@ pipeline {
                 withKubeConfig([credentialsId: 'kubeconfig-staging']) {
                     echo 'Deploying to staging environment...'
                     sh '''
-                        # Install envsubst for variable substitution
-                        apk add --no-cache gettext
+                        # Install envsubst for variable substitution (try both package managers)
+                        apt-get update && apt-get install -y gettext-base || apk add --no-cache gettext
                         
                         # Apply namespace first
                         kubectl apply -f infrastructure/kubernetes/00-namespace.yaml
@@ -333,8 +333,8 @@ pipeline {
                     sh '''
                         K8S_SERVER="https://localhost:6443"
                         
-                        # Install envsubst for variable substitution
-                        apk add --no-cache gettext
+                        # Install envsubst for variable substitution (try both package managers)
+                        apt-get update && apt-get install -y gettext-base || apk add --no-cache gettext
 
                         # Apply namespace first
                         kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/01-namespace-prod.yaml
