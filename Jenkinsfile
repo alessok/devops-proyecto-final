@@ -104,9 +104,8 @@ pipeline {
                     image 'docker:26.1.4' // Usamos una imagen oficial de Docker con Alpine
                     // Montamos el socket de Docker y conectamos este agente a la red principal del proyecto
                     args '-v /var/run/docker.sock:/var/run/docker.sock --network=devops-proyecto-final_inventory-network'
+                    reuseNode true // Reutiliza el workspace del nodo principal
                 }
-
-
             }
             steps {
                 script {
