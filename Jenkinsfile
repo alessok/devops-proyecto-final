@@ -110,7 +110,6 @@ pipeline {
             steps {
                 script {
                     // --- Preparación del Entorno ---
-                    // El contenedor 'docker' no tiene Node.js, así que lo instalamos.
                     echo 'Installing Node.js and npm...'
                     sh 'apk add --update nodejs npm'
 
@@ -146,7 +145,6 @@ pipeline {
                     '''
 
                     echo 'Running database migrations...'
-                    // El workspace se monta automáticamente, por lo que Jenkins encuentra los archivos.
                     sh '''
                         docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V3__create_backend_compatible_tables.sql
                         docker exec -i test-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < database/migrations/V4__insert_initial_data.sql
@@ -191,11 +189,8 @@ pipeline {
             }
         }
 
-        // VERSIÓN DEFINITIVA, CORRECTA Y ROBUSTA
         stage('SonarQube Static Analysis') {
             steps {
-                // Mantenemos withSonarQubeEnv para que waitForQualityGate funcione
-                // y para que nos dé las variables SONAR_HOST_URL y SONAR_AUTH_TOKEN.
                 withSonarQubeEnv('SonarQube') {
                     script {
                         def scannerContainer = "sonar-scanner-container-${env.BUILD_NUMBER}"
@@ -206,9 +201,6 @@ pipeline {
 
                             echo "Ejecutando el análisis de SonarScanner pasando el entorno de Jenkins..."
 
-                            // La clave es que pasamos explícitamente las variables que prepara 'withSonarQubeEnv'
-                            // al entorno del comando 'docker exec'.
-                            // Jenkins reemplazará ${SONAR_HOST_URL} y ${SONAR_AUTH_TOKEN} con los valores correctos.
                             sh """
                                 docker exec \\
                                 -e SONAR_HOST_URL=\${SONAR_HOST_URL} \\
@@ -217,9 +209,6 @@ pipeline {
                                 /opt/sonar-scanner/bin/sonar-scanner
                             """
 
-                            // ---- PASO CLAVE Y FINAL ----
-                            // Copiamos el directorio de resultados (.scannerwork) de vuelta al workspace de Jenkins.
-                            // El punto final "." significa "al directorio actual".
                             echo "Copiando los resultados del análisis desde el contenedor..."
                             sh "docker cp ${scannerContainer}:/usr/src/.scannerwork ."
 
@@ -282,16 +271,31 @@ pipeline {
                 docker {
                     image 'bitnami/kubectl:1.29' // Una imagen pública popular que solo contiene kubectl
                     args '-u root --entrypoint="" --network host'
-                    reuseNode true // Le dice a Jenkins que reutilice el workspace de las etapas anteriores
+                    reuseNode true
                 }
             }
             steps {
                 withKubeConfig([credentialsId: 'kubeconfig-staging']) {
                     echo 'Deploying to staging environment...'
-                    // Comandos kubectl corregidos y separados por '&& \'
                     sh '''
-                        kubectl apply -f infrastructure/kubernetes/ --namespace=staging && \\
-                        kubectl rollout status deployment/backend-deployment --namespace=staging && \\
+                        # Install envsubst for variable substitution
+                        apk add --no-cache gettext
+                        
+                        # Apply namespace first
+                        kubectl apply -f infrastructure/kubernetes/00-namespace.yaml
+                        
+                        # Apply postgres (no image substitution needed)
+                        kubectl apply -f infrastructure/kubernetes/postgres.yaml --namespace=staging
+                        
+                        # Apply backend with environment variable substitution
+                        export BUILD_NUMBER=${BUILD_NUMBER}
+                        envsubst < infrastructure/kubernetes/backend.yaml | kubectl apply -f - --namespace=staging
+                        
+                        # Apply frontend with environment variable substitution
+                        envsubst < infrastructure/kubernetes/frontend.yaml | kubectl apply -f - --namespace=staging
+                        
+                        # Wait for rollouts
+                        kubectl rollout status deployment/backend-deployment --namespace=staging
                         kubectl rollout status deployment/frontend-deployment --namespace=staging
                     '''
                 }
@@ -324,19 +328,29 @@ pipeline {
                 }
             }
             steps {
-                // Para un despliegue real a producción, aquí usarías una credencial
-                // diferente, ej. 'kubeconfig-production'
                 withKubeConfig([credentialsId: 'kubeconfig-staging']) {
                     echo 'Deploying to PRODUCTION environment...'
                     sh '''
-                        # ---- LA SOLUCIÓN ESTÁ AQUÍ ----
-                        # Forzamos a kubectl a que apunte al servidor correcto de K8s,
-                        # ignorando cualquier configuración por defecto o variable de entorno conflictiva.
-
                         K8S_SERVER="https://localhost:6443"
+                        
+                        # Install envsubst for variable substitution
+                        apk add --no-cache gettext
 
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/ --namespace=production && \\
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/backend-deployment --namespace=production && \\
+                        # Apply namespace first
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/01-namespace-prod.yaml
+                        
+                        # Apply postgres (no image substitution needed)
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/postgres.yaml --namespace=production
+                        
+                        # Apply backend with environment variable substitution
+                        export BUILD_NUMBER=${BUILD_NUMBER}
+                        envsubst < infrastructure/kubernetes/backend.yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f - --namespace=production
+                        
+                        # Apply frontend with environment variable substitution
+                        envsubst < infrastructure/kubernetes/frontend.yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f - --namespace=production
+                        
+                        # Wait for rollouts
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/backend-deployment --namespace=production
                         kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/frontend-deployment --namespace=production
                     '''
                 }
@@ -357,12 +371,12 @@ pipeline {
                 dir('tests/performance') {
                     echo 'Preparing environment and running performance tests...'
                     sh(script: '''
-                        set -ex  # Hacemos que el script falle en cualquier error y muestre los comandos
+                        set -ex  
 
                         echo "--- Paso 1: Actualizando lista de paquetes ---"
                         apt-get update
 
-                        # --- CORRECCIÓN: Instalamos todo en un solo paso y usamos 'chromium' ---
+                        # --- Instalamos todo en un solo paso y usamos 'chromium' ---
                         echo "--- Paso 2: Instalando dependencias del sistema (curl, ab y chromium) ---"
                         apt-get install -y curl apache2-utils chromium
 
