@@ -154,6 +154,38 @@ services:
     networks:
       - inventory-network
 
+  # PostgreSQL Exporter para métricas de base de datos
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://inventory_user:inventory_pass@postgres:5432/inventory_db?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventory-network
+
+  # Node Exporter para métricas del sistema
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - inventory-network
+
   # Selenium Hub para pruebas funcionales
   selenium-hub:
     image: selenium/hub:4.15.0
