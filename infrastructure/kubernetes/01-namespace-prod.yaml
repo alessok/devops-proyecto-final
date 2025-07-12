@@ -1,5 +1,0 @@
-# infrastructure/kubernetes/01-namespace-prod.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: production

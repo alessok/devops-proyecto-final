@@ -97,7 +97,7 @@ pipeline {
             }
         }
 
-        stage('Unit & Integration Tests') {
+        stage('Backend Tests & Coverage') {
             agent {
                 // Usamos un agente temporal de Docker. Esto evita los problemas de permisos del host.
                 docker {
@@ -264,45 +264,8 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy to Staging') {
-            // Aquí definimos un agente específico solo para esta etapa
-            agent {
-                docker {
-                    image 'bitnami/kubectl:1.29' // Una imagen pública popular que solo contiene kubectl
-                    args '-u root --entrypoint="" --network host'
-                    reuseNode true
-                }
-            }
-            steps {
-                withKubeConfig([credentialsId: 'kubeconfig-staging']) {
-                    echo 'Deploying to staging environment...'
-                    sh '''
-                        # Install envsubst for variable substitution (try both package managers)
-                        apt-get update && apt-get install -y gettext-base || apk add --no-cache gettext
-                        
-                        # Apply namespace first
-                        kubectl apply -f infrastructure/kubernetes/00-namespace.yaml
-                        
-                        # Apply postgres (no image substitution needed)
-                        kubectl apply -f infrastructure/kubernetes/postgres.yaml --namespace=staging
-                        
-                        # Apply backend with environment variable substitution
-                        export BUILD_NUMBER=${BUILD_NUMBER}
-                        envsubst < infrastructure/kubernetes/backend.yaml | kubectl apply -f - --namespace=staging
-                        
-                        # Apply frontend with environment variable substitution
-                        envsubst < infrastructure/kubernetes/frontend.yaml | kubectl apply -f - --namespace=staging
-                        
-                        # Wait for rollouts
-                        kubectl rollout status deployment/backend-deployment --namespace=staging
-                        kubectl rollout status deployment/frontend-deployment --namespace=staging
-                    '''
-                }
-            }
-        }
-
-        stage('Integration Tests') {
+        
+        stage('End-to-End Integration Tests') {
             // La condición 'when' se elimina para que se ejecute siempre
             agent {
                 docker {
@@ -315,44 +278,6 @@ pipeline {
                 dir('tests/integration') {
                     sh 'npm install'
                     sh 'npm test'
-                }
-            }
-        }
-
-        stage('Deploy to Production') {
-            agent {
-                docker {
-                    image 'bitnami/kubectl:1.29'
-                    args '-u root --entrypoint="" --network host'
-                    reuseNode true
-                }
-            }
-            steps {
-                withKubeConfig([credentialsId: 'kubeconfig-staging']) {
-                    echo 'Deploying to PRODUCTION environment...'
-                    sh '''
-                        K8S_SERVER="https://localhost:6443"
-                        
-                        # Install envsubst for variable substitution (try both package managers)
-                        apt-get update && apt-get install -y gettext-base || apk add --no-cache gettext
-
-                        # Apply namespace first
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/01-namespace-prod.yaml
-                        
-                        # Apply postgres (no image substitution needed)
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f infrastructure/kubernetes/postgres.yaml --namespace=production
-                        
-                        # Apply backend with environment variable substitution
-                        export BUILD_NUMBER=${BUILD_NUMBER}
-                        envsubst < infrastructure/kubernetes/backend.yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f - --namespace=production
-                        
-                        # Apply frontend with environment variable substitution
-                        envsubst < infrastructure/kubernetes/frontend.yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f - --namespace=production
-                        
-                        # Wait for rollouts
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/backend-deployment --namespace=production
-                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/frontend-deployment --namespace=production
-                    '''
                 }
             }
         }
