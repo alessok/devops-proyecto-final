@@ -65,6 +65,36 @@ const businessMetrics = {
   })
 };
 
+// Function to update business metrics with real database data
+export async function updateBusinessMetrics() {
+  try {
+    const { pool } = await import('../config/database');
+    
+    // Get real counts from database
+    const [productsResult, categoriesResult, usersResult, lowStockResult] = await Promise.all([
+      pool.query('SELECT COUNT(*) as total FROM products WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) as total FROM categories WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) as total FROM users WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) as total FROM products WHERE is_active = true AND stock_quantity <= min_stock_level')
+    ]);
+
+    // Update metrics with real values
+    businessMetrics.totalProducts.set(parseInt(productsResult.rows[0].total) || 0);
+    businessMetrics.totalCategories.set(parseInt(categoriesResult.rows[0].total) || 0);
+    businessMetrics.totalUsers.set(parseInt(usersResult.rows[0].total) || 0);
+    businessMetrics.lowStockProducts.set(parseInt(lowStockResult.rows[0].total) || 0);
+    
+    console.log('Business metrics updated:', {
+      products: productsResult.rows[0].total,
+      categories: categoriesResult.rows[0].total,
+      users: usersResult.rows[0].total,
+      lowStock: lowStockResult.rows[0].total
+    });
+  } catch (error) {
+    console.error('Error updating business metrics:', error);
+  }
+}
+
 export {
   register,
   httpRequestsTotal,

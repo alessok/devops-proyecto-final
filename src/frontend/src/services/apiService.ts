@@ -35,11 +35,22 @@ class ApiService {
     this.api.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
         if (token) {
           config.headers = config.headers || {};
           config.headers.Authorization = `Bearer ${token}`;
+          
+          // Debug token content
+          try {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            console.log('Token payload:', tokenPayload);
+            console.log('User from localStorage:', user ? JSON.parse(user) : null);
+          } catch (e) {
+            console.log('Could not parse token');
+          }
         }
         console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        console.log('Request data:', config.data);
         return config;
       },
       (error) => {
@@ -57,9 +68,11 @@ class ApiService {
       async (error) => {
         console.error(`API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
         
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !error.config._retry) {
+          error.config._retry = true; // Mark to prevent infinite loops
+          
           const refreshToken = localStorage.getItem('refreshToken');
-          if (refreshToken) {
+          if (refreshToken && !error.config.url?.includes('/auth/refresh')) {
             try {
               const response = await this.refreshToken(refreshToken);
               localStorage.setItem('token', response.data.token);
@@ -76,7 +89,10 @@ class ApiService {
               window.location.href = '/login';
             }
           } else {
-            // No refresh token, redirect to login
+            // No refresh token or refresh endpoint failed, redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
             window.location.href = '/login';
           }
         }

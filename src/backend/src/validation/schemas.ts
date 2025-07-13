@@ -24,6 +24,16 @@ export const loginSchema = Joi.object({
   password: Joi.string().required()
 });
 
+export const registerSchema = Joi.object({
+  email: Joi.string().email().required(),
+  username: Joi.string().alphanum().min(3).max(30).required(),
+  password: Joi.string().min(6).max(128).required(),
+  firstName: Joi.string().min(2).max(50).required(),
+  lastName: Joi.string().min(2).max(50).required(),
+  role: Joi.string().valid('admin', 'manager', 'employee').default('employee'),
+  confirmPassword: Joi.any().optional().strip() // Allow but remove confirmPassword
+}).unknown(false); // Explicitly reject other unknown fields
+
 // Product validation schemas (matching real database structure)
 export const createProductSchema = Joi.object({
   name: Joi.string().min(2).max(200).required(),

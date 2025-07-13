@@ -51,6 +51,7 @@ export class AuthController {
 
       const loginResponse: LoginResponse = {
         token,
+        refreshToken: token, // In a real app, this should be different
         user: userWithoutPassword,
         expiresIn
       };
@@ -86,10 +87,43 @@ export class AuthController {
       // Create new user
       const newUser = await userService.create(userData);
 
-      const response: ApiResponse = {
+      // Generate JWT token for immediate login after registration
+      const expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new AppError('JWT secret not configured', 500);
+      }
+      
+      const token = jwt.sign(
+        { 
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            username: newUser.username,
+            firstName: newUser.firstName,
+            lastName: newUser.lastName,
+            role: newUser.role
+          }
+        },
+        jwtSecret as string,
+        { expiresIn: expiresIn as string } as SignOptions
+      );
+
+      // Remove password from user object
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _password, ...userWithoutPassword } = newUser;
+
+      const registerResponse: LoginResponse = {
+        token,
+        refreshToken: token, // In a real app, this should be different
+        user: userWithoutPassword,
+        expiresIn
+      };
+
+      const response: ApiResponse<LoginResponse> = {
         success: true,
         message: 'User registered successfully',
-        data: { id: newUser.id, email: newUser.email, username: newUser.username },
+        data: registerResponse,
         timestamp: new Date().toISOString()
       };
 
@@ -145,6 +179,23 @@ export class AuthController {
         success: true,
         message: 'Token refreshed successfully',
         data: { token, expiresIn },
+        timestamp: new Date().toISOString()
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // In a more advanced implementation, you could blacklist the token
+      // For now, we just return a success response since JWT is stateless
+      const response: ApiResponse = {
+        success: true,
+        message: 'Logged out successfully',
+        data: null,
         timestamp: new Date().toISOString()
       };
 

@@ -76,6 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: RegisterRequest): Promise<void> => {
     try {
       setLoading(true);
+      console.log('AuthContext - register called with:', userData);
       const response = await apiService.register(userData);
       
       if (response.success && response.data) {
@@ -150,7 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Token refresh failed:', error);
       // If refresh fails, logout user
-      logout();
+      await logout();
       throw error;
     }
   };

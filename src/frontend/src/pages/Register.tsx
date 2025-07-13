@@ -17,10 +17,20 @@ const Register: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, watch } = useForm<RegisterFormData>();
   const password = watch('password');
 
-  const onSubmit = async (data: RegisterRequest) => {
+  const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsSubmitting(true);
-      await registerUser(data);
+      
+      // Create a clean object with only the required fields
+      const registerData: RegisterRequest = {
+        email: data.email,
+        username: data.username,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName
+      };
+      
+      await registerUser(registerData);
       navigate('/dashboard', { replace: true });
     } catch (error) {
       // Error is handled in AuthContext

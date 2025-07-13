@@ -91,6 +91,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   user: Omit<User, 'password'>;
   expiresIn: string;
 }

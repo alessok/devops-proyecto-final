@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import { metricsMiddleware } from './middleware/metrics';
-import { register } from './services/metricsService';
+import { register, updateBusinessMetrics } from './services/metricsService';
 
 // Route imports
 import authRoutes from './routes/auth';
@@ -210,6 +210,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`📈 Metrics: http://localhost:${PORT}/metrics`);
+    
+    // Initialize business metrics
+    updateBusinessMetrics();
+    
+    // Update business metrics every 30 seconds
+    setInterval(updateBusinessMetrics, 30000);
+    console.log('📊 Business metrics will update every 30 seconds');
   });
 }
 

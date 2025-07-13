@@ -48,8 +48,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onSubmitForm)}>
       <div className="form-group">
-        <label className="form-label">Nombre del Producto *</label>
+        <label htmlFor="product-name" className="form-label">Nombre del Producto *</label>
         <input
+          id="product-name"
           type="text"
           className={`form-control ${errors.name ? 'error' : ''}`}
           placeholder="Nombre del producto"
@@ -67,8 +68,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label className="form-label">Descripción</label>
+        <label htmlFor="product-description" className="form-label">Descripción</label>
         <textarea
+          id="product-description"
           className={`form-control ${errors.description ? 'error' : ''}`}
           placeholder="Descripción del producto"
           rows={3}
@@ -83,8 +85,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div className="form-group">
-          <label className="form-label">Precio *</label>
+          <label htmlFor="product-price" className="form-label">Precio *</label>
           <input
+            id="product-price"
             type="number"
             step="0.01"
             min="0"
@@ -104,8 +107,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
 
         <div className="form-group">
-          <label className="form-label">Cantidad en Stock *</label>
+          <label htmlFor="product-stock" className="form-label">Cantidad en Stock *</label>
           <input
+            id="product-stock"
             type="number"
             min="0"
             className={`form-control ${errors.stockQuantity ? 'error' : ''}`}
@@ -125,8 +129,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label className="form-label">Categoría *</label>
+        <label htmlFor="product-category" className="form-label">Categoría *</label>
         <select
+          id="product-category"
           className={`form-control ${errors.categoryId ? 'error' : ''}`}
           {...register('categoryId', {
             required: 'La categoría es requerida'

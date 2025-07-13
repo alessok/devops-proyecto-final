@@ -37,12 +37,18 @@ export class UserService {
   }
 
   async findAll(page: number = 1, limit: number = 10): Promise<{ users: User[], total: number }> {
-    const offset = (page - 1) * limit;
+    console.log('UserService.findAll called with page:', page, 'limit:', limit);
     
+    const offset = (page - 1) * limit;
+    console.log('Calculated offset:', offset);
+    
+    console.log('Executing count query...');
     const countQuery = 'SELECT COUNT(*) FROM users WHERE is_active = true';
     const countResult = await pool.query(countQuery);
     const total = parseInt(countResult.rows[0].count);
+    console.log('Count result:', total);
 
+    console.log('Executing main query...');
     const query = `
       SELECT id, email, username, first_name as "firstName", last_name as "lastName", 
              role, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
@@ -52,6 +58,9 @@ export class UserService {
     `;
     
     const result = await pool.query(query, [limit, offset]);
+    console.log('Main query result rows count:', result.rows.length);
+    console.log('Returning from findAll');
+    
     return { users: result.rows, total };
   }
 

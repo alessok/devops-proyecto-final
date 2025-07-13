@@ -26,14 +26,24 @@ export const authenticateToken = (
 
 export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
+    console.log('authorizeRoles middleware called');
+    console.log('Required roles:', roles);
+    console.log('User from request:', req.user);
+    
     if (!req.user) {
+      console.log('No user in request');
       throw new AppError('Authentication required', 401);
     }
 
+    console.log('User role:', req.user.role);
+    console.log('Role check result:', roles.includes(req.user.role));
+    
     if (!roles.includes(req.user.role)) {
+      console.log('Insufficient permissions - user role:', req.user.role, 'required roles:', roles);
       throw new AppError('Insufficient permissions', 403);
     }
 
+    console.log('Authorization successful');
     next();
   };
 };
