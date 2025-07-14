@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductController } from '../controllers/productController';
 import { ProductService } from '../services/productService';
-import { AppError } from '../middleware/errorHandler';
 
 // Mock ProductService
 jest.mock('../services/productService');
