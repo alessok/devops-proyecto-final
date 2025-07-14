@@ -215,7 +215,9 @@ if (process.env.NODE_ENV !== 'test') {
     updateBusinessMetrics();
     
     // Update business metrics every 30 seconds
-    setInterval(updateBusinessMetrics, 30000);
+    setInterval(() => {
+      updateBusinessMetrics().catch(console.error);
+    }, 30000);
     console.log('📊 Business metrics will update every 30 seconds');
   });
 }
