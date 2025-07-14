@@ -194,4 +194,108 @@ describe('MetricsService', () => {
       expect(businessMetrics.lowStockProducts.dec).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('updateBusinessMetrics function', () => {
+    // Mock the database module for updateBusinessMetrics tests
+    beforeEach(() => {
+      jest.resetModules();
+      jest.clearAllMocks();
+    });
+
+    it('should update metrics with real database data', async () => {
+      // Mock the dynamic import and database queries
+      const mockPool = {
+        query: jest.fn()
+      };
+
+      // Mock database responses
+      const mockResults = [
+        { rows: [{ total: '25' }] }, // products
+        { rows: [{ total: '5' }] },  // categories  
+        { rows: [{ total: '10' }] }, // users
+        { rows: [{ total: '3' }] }   // low stock
+      ];
+
+      mockPool.query.mockImplementation(() => 
+        Promise.resolve(mockResults.shift())
+      );
+
+      // Mock the dynamic import
+      jest.doMock('../config/database', () => ({
+        pool: mockPool
+      }));
+
+      // Import after mocking
+      const { updateBusinessMetrics } = await import('../services/metricsService');
+      
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      await updateBusinessMetrics();
+
+      expect(mockPool.query).toHaveBeenCalledTimes(4);
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT COUNT(*) as total FROM products WHERE is_active = true');
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT COUNT(*) as total FROM categories WHERE is_active = true');
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT COUNT(*) as total FROM users WHERE is_active = true');
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT COUNT(*) as total FROM products WHERE is_active = true AND stock_quantity <= min_stock_level');
+
+      expect(consoleLogSpy).toHaveBeenCalledWith('Business metrics updated:', {
+        products: '25',
+        categories: '5', 
+        users: '10',
+        lowStock: '3'
+      });
+
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should handle database errors gracefully', async () => {
+      const mockPool = {
+        query: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+      };
+
+      jest.doMock('../config/database', () => ({
+        pool: mockPool
+      }));
+
+      const { updateBusinessMetrics } = await import('../services/metricsService');
+      
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await updateBusinessMetrics();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error updating business metrics:',
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle null database results', async () => {
+      const mockPool = {
+        query: jest.fn()
+      };
+
+      const mockResults = [
+        { rows: [{}] }, // empty result
+        { rows: [{ total: null }] }, // null total
+        { rows: [{ total: undefined }] }, // undefined total  
+        { rows: [{ total: '0' }] } // zero total
+      ];
+
+      mockPool.query.mockImplementation(() => 
+        Promise.resolve(mockResults.shift())
+      );
+
+      jest.doMock('../config/database', () => ({
+        pool: mockPool
+      }));
+
+      const { updateBusinessMetrics } = await import('../services/metricsService');
+
+      await updateBusinessMetrics();
+
+      expect(mockPool.query).toHaveBeenCalledTimes(4);
+    });
+  });
 });

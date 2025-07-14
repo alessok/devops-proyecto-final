@@ -338,4 +338,121 @@ describe('AuthController', () => {
       expect(error.statusCode).toBe(500);
     });
   });
+
+  describe('Edge cases and error handling', () => {
+    it('should handle missing JWT_SECRET in login', async () => {
+      delete process.env.JWT_SECRET;
+      
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+
+      const mockUser = {
+        id: 1,
+        email: 'test@example.com',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        password: 'hashedpassword',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockUserService.findByEmail.mockResolvedValue(mockUser);
+      mockUserService.verifyPassword.mockResolvedValue(true);
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+      const error = (mockNext as jest.Mock).mock.calls[0][0] as AppError;
+      expect(error.message).toBe('JWT secret not configured');
+      expect(error.statusCode).toBe(500);
+    });
+
+    it('should handle JWT signing errors in login', async () => {
+      process.env.JWT_SECRET = 'test-secret';
+      
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+
+      const mockUser = {
+        id: 1,
+        email: 'test@example.com',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        password: 'hashedpassword',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockUserService.findByEmail.mockResolvedValue(mockUser);
+      mockUserService.verifyPassword.mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockImplementation(() => {
+        throw new Error('JWT signing failed');
+      });
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('should handle different JWT_EXPIRES_IN values', async () => {
+      process.env.JWT_SECRET = 'test-secret';
+      process.env.JWT_EXPIRES_IN = '1h';
+      
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+
+      const mockUser = {
+        id: 1,
+        email: 'test@example.com',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        role: UserRole.EMPLOYEE,
+        password: 'hashedpassword',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      mockUserService.findByEmail.mockResolvedValue(mockUser);
+      mockUserService.verifyPassword.mockResolvedValue(true);
+      (jwt.sign as jest.Mock).mockReturnValue('new-token');
+
+      await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.any(Object),
+        'test-secret',
+        { expiresIn: '1h' }
+      );
+    });
+
+    it('should handle user service errors in register', async () => {
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User'
+      };
+
+      mockUserService.create.mockRejectedValue(new Error('Database error'));
+
+      await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
 });
