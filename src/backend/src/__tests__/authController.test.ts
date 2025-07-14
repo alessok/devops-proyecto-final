@@ -69,6 +69,7 @@ describe('AuthController', () => {
         message: 'Login successful',
         data: {
           token: 'mock-token',
+          refreshToken: 'mock-token',
           user: {
             id: 1,
             email: 'test@example.com',
@@ -150,6 +151,7 @@ describe('AuthController', () => {
       mockUserService.findByEmail.mockResolvedValue(null);
       mockUserService.findByUsername.mockResolvedValue(null);
       mockUserService.create.mockResolvedValue(mockCreatedUser);
+      (jwt.sign as jest.Mock).mockReturnValue('mock-token');
 
       await authController.register(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -161,9 +163,20 @@ describe('AuthController', () => {
         success: true,
         message: 'User registered successfully',
         data: {
-          id: mockCreatedUser.id,
-          email: mockCreatedUser.email,
-          username: mockCreatedUser.username
+          token: 'mock-token',
+          refreshToken: 'mock-token',
+          user: {
+            id: mockCreatedUser.id,
+            email: mockCreatedUser.email,
+            username: mockCreatedUser.username,
+            firstName: mockCreatedUser.firstName,
+            lastName: mockCreatedUser.lastName,
+            role: mockCreatedUser.role,
+            isActive: mockCreatedUser.isActive,
+            createdAt: mockCreatedUser.createdAt,
+            updatedAt: mockCreatedUser.updatedAt
+          },
+          expiresIn: '24h'
         },
         timestamp: expect.any(String)
       });
