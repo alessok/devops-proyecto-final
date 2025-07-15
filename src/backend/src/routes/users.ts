@@ -74,8 +74,10 @@ function createUsersRouter(userServiceParam?: UserService) {
       };
 
       res.status(200).json(response);
+      return;
     } catch (error) {
       next(error);
+      return;
     }
   });
 
@@ -117,8 +119,10 @@ function createUsersRouter(userServiceParam?: UserService) {
         };
 
         res.status(200).json(response);
+        return;
       } catch (error) {
         next(error);
+        return;
       }
     }
   );
