@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router, Request, RequestHandler } from 'express';
 import { UserService } from '../services/userService';
 import { validate, validateQuery } from '../validation/validator';
 import { updateUserSchema, paginationSchema } from '../validation/schemas';
@@ -18,8 +18,8 @@ function createUsersRouter(userServiceParam?: UserService) {
   router.use(authenticateToken);
 
   // GET all users (admin only)
-  router.get('/', 
-    authorizeRoles('admin'), 
+  router.get('/',
+    authorizeRoles('admin'),
     validateQuery(paginationSchema),
     async (req, res, next) => {
       try {
@@ -48,13 +48,13 @@ function createUsersRouter(userServiceParam?: UserService) {
   );
 
   // GET user by ID (admin or own profile)
-  router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
+  router.get('/:id', (async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
       if (!id) {
         throw new AppError('User ID is required', 400);
       }
-      
+
       const requesterId = req.user?.id;
 
       // Allow users to view their own profile or admins to view any profile
@@ -79,18 +79,18 @@ function createUsersRouter(userServiceParam?: UserService) {
       next(error);
       return;
     }
-  });
+  }) as RequestHandler);
 
   // UPDATE user (admin or own profile)
-  router.put('/:id', 
+  router.put('/:id',
     validate(updateUserSchema),
-    async (req: AuthenticatedRequest, res, next) => {
+    (async (req: AuthenticatedRequest, res, next) => {
       try {
         const { id } = req.params;
         if (!id) {
           throw new AppError('User ID is required', 400);
         }
-        
+
         const requesterId = req.user?.id;
         const userData = req.body;
 
@@ -124,11 +124,11 @@ function createUsersRouter(userServiceParam?: UserService) {
         next(error);
         return;
       }
-    }
+    }) as RequestHandler
   );
 
   // DELETE user (admin only)
-  router.delete('/:id', 
+  router.delete('/:id',
     authorizeRoles('admin'),
     async (req, res, next) => {
       try {
