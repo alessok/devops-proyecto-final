@@ -1,10 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-
+import { User } from '../types';
 import { AppError } from './errorHandler';
 
+interface AuthenticatedRequest extends Request {
+  user?: Omit<User, 'password'>;
+}
+
 export const authenticateToken = (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -25,7 +29,7 @@ export const authenticateToken = (
 };
 
 export const authorizeRoles = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     console.log('authorizeRoles middleware called');
     console.log('Required roles:', roles);
     console.log('User from request:', req.user);

@@ -20,7 +20,7 @@ const Products: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-    
+
     // Check if we're on the "new" route and open modal
     if (location.pathname === '/products/new') {
       setIsModalOpen(true);
@@ -125,8 +125,14 @@ const Products: React.FC = () => {
 
   const filteredProducts = (Array.isArray(products) ? products : []).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '' || product.categoryId === selectedCategory;
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Match by category - check both categoryId and category name
+    const matchesCategory = selectedCategory === '' ||
+      product.categoryId === selectedCategory ||
+      (typeof product.category === 'string' &&
+        categories.find(c => c.id === selectedCategory)?.name === product.category);
+
     return matchesSearch && matchesCategory;
   });
 
@@ -157,11 +163,11 @@ const Products: React.FC = () => {
     <div style={{ padding: '32px 0' }}>
       <div className="container">
         {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '32px' 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px'
         }}>
           <div>
             <h1 style={{ margin: 0, color: '#495057' }}>Productos</h1>
@@ -169,7 +175,7 @@ const Products: React.FC = () => {
               Gestiona el inventario de productos ({filteredProducts.length} total)
             </p>
           </div>
-          <button 
+          <button
             className="btn btn-primary"
             onClick={openCreateModal}
           >
@@ -181,22 +187,22 @@ const Products: React.FC = () => {
         {/* Filters */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-body">
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr auto', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
               gap: '16px',
               alignItems: 'center'
             }}>
               <div style={{ position: 'relative' }}>
-                <Search 
-                  size={16} 
-                  style={{ 
-                    position: 'absolute', 
-                    left: '12px', 
-                    top: '50%', 
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
                     transform: 'translateY(-50%)',
                     color: '#6c757d'
-                  }} 
+                  }}
                 />
                 <input
                   type="text"
@@ -207,7 +213,7 @@ const Products: React.FC = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
+
               <select
                 className="form-control"
                 style={{ minWidth: '200px' }}
@@ -231,7 +237,7 @@ const Products: React.FC = () => {
             <Package size={64} style={{ marginBottom: '16px', color: '#6c757d' }} />
             <h3>No hay productos</h3>
             <p>
-              {searchTerm || selectedCategory 
+              {searchTerm || selectedCategory
                 ? 'No se encontraron productos con los filtros aplicados'
                 : 'Comienza agregando tu primer producto'
               }
@@ -265,7 +271,7 @@ const Products: React.FC = () => {
                     const StockIcon = stockStatus.icon;
                     const categoryId = product.categoryId ?? 0;
                     const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price) || '0');
-                    
+
                     return (
                       <tr key={product.id}>
                         <td>
@@ -278,14 +284,20 @@ const Products: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td>{getCategoryName(categoryId)}</td>
+                        <td>{
+                          typeof product.category === 'string'
+                            ? product.category
+                            : typeof product.category === 'object' && product.category?.name
+                              ? product.category.name
+                              : getCategoryName(categoryId)
+                        }</td>
                         <td>
                           ${price.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
                         </td>
                         <td>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
                             gap: '8px'
                           }}>
                             <StockIcon size={16} style={{ color: stockStatus.color }} />
@@ -295,7 +307,7 @@ const Products: React.FC = () => {
                           </div>
                         </td>
                         <td>
-                          <span style={{ 
+                          <span style={{
                             color: stockStatus.color,
                             fontSize: '14px',
                             fontWeight: '500'
@@ -309,10 +321,10 @@ const Products: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <div style={{ 
-                            display: 'flex', 
-                            gap: '8px', 
-                            justifyContent: 'center' 
+                          <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            justifyContent: 'center'
                           }}>
                             <button
                               className="btn btn-secondary"

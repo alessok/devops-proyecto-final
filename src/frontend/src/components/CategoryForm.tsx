@@ -18,7 +18,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
     defaultValues: category ? {
       name: category.name,
       description: category.description,
-      isActive: category.isActive
+      isActive: category.isActive ?? true
     } : {
       name: '',
       description: ''

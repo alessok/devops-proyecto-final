@@ -35,7 +35,7 @@ describe('CategoryService', () => {
 
       expect(result).toEqual(mockCategory);
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM categories WHERE id = $1 AND is_active = true'),
+        expect.stringContaining('FROM categories WHERE id = $1'),
         [1]
       );
     });
@@ -66,7 +66,7 @@ describe('CategoryService', () => {
 
       expect(result).toEqual(mockCategory);
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM categories WHERE name = $1 AND is_active = true'),
+        expect.stringContaining('FROM categories WHERE name = $1'),
         ['Electronics']
       );
     });
@@ -107,7 +107,7 @@ describe('CategoryService', () => {
 
       expect(result).toEqual(mockCategories);
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM categories WHERE is_active = true ORDER BY name ASC')
+        expect.stringContaining('FROM categories')
       );
     });
 

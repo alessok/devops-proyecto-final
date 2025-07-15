@@ -2,7 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserService } from '../services/userService';
 import { AppError } from '../middleware/errorHandler';
-import { LoginRequest, LoginResponse, ApiResponse } from '../types';
+import { LoginRequest, LoginResponse, ApiResponse, User } from '../types';
+
+interface AuthenticatedRequest extends Request {
+  user?: Omit<User, 'password'>;
+}
 
 const userService = new UserService();
 
@@ -133,7 +137,7 @@ export class AuthController {
     }
   }
 
-  async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
         throw new AppError('User not authenticated', 401);
@@ -157,7 +161,7 @@ export class AuthController {
     }
   }
 
-  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async refreshToken(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
         throw new AppError('User not authenticated', 401);

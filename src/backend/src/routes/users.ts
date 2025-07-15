@@ -1,10 +1,14 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { UserService } from '../services/userService';
 import { validate, validateQuery } from '../validation/validator';
 import { updateUserSchema, paginationSchema } from '../validation/schemas';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
-import { ApiResponse } from '../types';
+import { ApiResponse, User } from '../types';
 import { AppError } from '../middleware/errorHandler';
+
+interface AuthenticatedRequest extends Request {
+  user?: Omit<User, 'password'>;
+}
 
 function createUsersRouter(userServiceParam?: UserService) {
   const router = Router();
@@ -19,8 +23,8 @@ function createUsersRouter(userServiceParam?: UserService) {
     validateQuery(paginationSchema),
     async (req, res, next) => {
       try {
-        const { page = 1, limit = 10 } = req.query as any;
-        const { users, total } = await userService.findAll(parseInt(page), parseInt(limit));
+        const { page = 1, limit = 10 } = req.query as { page?: string; limit?: string };
+        const { users, total } = await userService.findAll(Number(page), Number(limit));
 
         const response: ApiResponse = {
           success: true,
@@ -28,8 +32,8 @@ function createUsersRouter(userServiceParam?: UserService) {
           data: {
             users,
             pagination: {
-              currentPage: parseInt(page),
-              totalPages: Math.ceil(total / limit),
+              currentPage: Number(page),
+              totalPages: Math.ceil(total / Number(limit)),
               total: total
             }
           },
@@ -44,13 +48,17 @@ function createUsersRouter(userServiceParam?: UserService) {
   );
 
   // GET user by ID (admin or own profile)
-  router.get('/:id', async (req, res, next) => {
+  router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
+      if (!id) {
+        throw new AppError('User ID is required', 400);
+      }
+      
       const requesterId = req.user?.id;
 
       // Allow users to view their own profile or admins to view any profile
-      if (req.user?.role !== 'admin' && parseInt(id) !== requesterId) {
+      if (!req.user || (req.user.role !== 'admin' && parseInt(id) !== requesterId)) {
         throw new AppError('Insufficient permissions', 403);
       }
 
@@ -74,7 +82,7 @@ function createUsersRouter(userServiceParam?: UserService) {
   // UPDATE user (admin or own profile)
   router.put('/:id', 
     validate(updateUserSchema),
-    async (req, res, next) => {
+    async (req: AuthenticatedRequest, res, next) => {
       try {
         const { id } = req.params;
         if (!id) {
@@ -85,12 +93,12 @@ function createUsersRouter(userServiceParam?: UserService) {
         const userData = req.body;
 
         // Allow users to update their own profile or admins to update any profile
-        if (req.user?.role !== 'admin' && parseInt(id) !== requesterId) {
+        if (!req.user || (req.user.role !== 'admin' && parseInt(id) !== requesterId)) {
           throw new AppError('Insufficient permissions', 403);
         }
 
         // Only admins can change roles
-        if (userData.role && req.user?.role !== 'admin') {
+        if (userData.role && req.user.role !== 'admin') {
           throw new AppError('Only administrators can change user roles', 403);
         }
 

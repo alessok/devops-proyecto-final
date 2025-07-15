@@ -42,7 +42,18 @@ export class ProductService {
     const total = parseInt(countResult.rows[0].count);
 
     const query = `
-      SELECT p.*, c.name as category_name
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.stock_quantity as stockQuantity,
+        p.stock_quantity as stock,
+        p.category_id as categoryId,
+        p.is_active as isActive,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt,
+        c.name as category
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       ${whereClause}
@@ -57,7 +68,18 @@ export class ProductService {
 
   async findLowStock(): Promise<Product[]> {
     const query = `
-      SELECT p.*, c.name as category_name
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.stock_quantity as stockQuantity,
+        p.stock_quantity as stock,
+        p.category_id as categoryId,
+        p.is_active as isActive,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt,
+        c.name as category
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.stock_quantity <= 10 AND p.is_active = true
@@ -138,11 +160,32 @@ export class ProductService {
     const query = `
       UPDATE products SET ${fields.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING *
+      RETURNING 
+        id,
+        name,
+        description,
+        price,
+        stock_quantity as stockQuantity,
+        stock_quantity as stock,
+        category_id as categoryId,
+        is_active as isActive,
+        created_at as createdAt,
+        updated_at as updatedAt
     `;
     
     const result = await pool.query(query, values);
-    return result.rows[0] || null;
+    const updatedProduct = result.rows[0];
+    
+    if (updatedProduct) {
+      // Get category name
+      const categoryQuery = `SELECT name FROM categories WHERE id = $1`;
+      const categoryResult = await pool.query(categoryQuery, [updatedProduct.categoryId]);
+      if (categoryResult.rows[0]) {
+        updatedProduct.category = categoryResult.rows[0].name;
+      }
+    }
+    
+    return updatedProduct || null;
   }
 
   async updateStock(id: number, quantity: number): Promise<Product | null> {
@@ -168,7 +211,7 @@ export class ProductService {
       SELECT 
         COUNT(*) as total_products,
         SUM(stock_quantity) as total_stock,
-        COUNT(CASE WHEN stock_quantity <= min_stock_level THEN 1 END) as low_stock_count,
+        COUNT(CASE WHEN stock_quantity <= 10 THEN 1 END) as low_stock_count,
         AVG(price) as average_price
       FROM products 
       WHERE is_active = true

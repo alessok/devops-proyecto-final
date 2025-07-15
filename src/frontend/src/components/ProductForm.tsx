@@ -23,7 +23,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
       price: product.price,
       stockQuantity: product.stockQuantity,
       categoryId: product.categoryId,
-      isActive: product.isActive
+      isActive: product.isActive ?? true
     } : {
       name: '',
       description: '',

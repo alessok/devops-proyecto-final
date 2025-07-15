@@ -22,12 +22,21 @@ export class CategoryService {
 
   async findAll(): Promise<Category[]> {
     const query = `
-      SELECT * FROM categories WHERE is_active = true ORDER BY name ASC
+      SELECT 
+        id,
+        name,
+        description,
+        is_active as "isActive",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM categories  
+      ORDER BY name ASC
     `;
     
     const result = await pool.query(query);
     return result.rows;
   }
+
 
   async create(categoryData: CategoryCreate): Promise<Category> {
     const query = `
@@ -74,7 +83,13 @@ export class CategoryService {
     const query = `
       UPDATE categories SET ${fields.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING *
+      RETURNING 
+        id,
+        name,
+        description,
+        is_active as "isActive",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
     `;
     
     const result = await pool.query(query, values);
