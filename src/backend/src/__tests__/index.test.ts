@@ -62,6 +62,8 @@ describe('Index/App Tests', () => {
       expect(response.text).toContain('# HELP');
       expect(response.headers['content-type']).toMatch(/text\/plain/);
     });
+
+
   });
 
   describe('404 Handler', () => {
