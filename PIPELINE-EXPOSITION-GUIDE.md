@@ -1011,5 +1011,3 @@ ab -n 5000 -c 50 -H "Authorization: Bearer $TOKEN" \
 **R:** Paralelización estratégica, cache de dependencias NPM, multi-stage Docker builds, y early-exit en caso de fallos de calidad.
 
 ---
-
-**¡Este documento te da una base sólida para explicar cada detalle técnico de tu pipeline! 🚀**
